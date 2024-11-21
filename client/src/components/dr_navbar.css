@@ -1,0 +1,67 @@
+/* Navbar Container */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background-color: #001f3f;
+    /* Dark blue from the logo */
+    color: #ffffff;
+    /* White text */
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Left Section: Logo */
+.navbar-left {
+    display: flex;
+    align-items: center;
+}
+
+.navbar-logo {
+    width: 50px;
+    height: 50px;
+    margin-right: 10px;
+}
+
+.navbar-title {
+    font-size: 24px;
+    font-weight: bold;
+    color: #ffffff;
+    /* White text */
+    font-family: Arial, sans-serif;
+}
+
+/* Middle Section: Links */
+.navbar-links {
+    display: flex;
+    gap: 20px;
+}
+
+.navbar-links a {
+    text-decoration: none;
+    color: #ffffff;
+    /* White text */
+    font-weight: 500;
+    font-size: 16px;
+    transition: color 0.3s ease;
+}
+
+.navbar-links a:hover {
+    color: #00b4d8;
+    /* Light blue hover color */
+}
+
+/* Right Section: Profile Image */
+.navbar-right {
+    display: flex;
+    align-items: center;
+}
+
+.navbar-profile {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid #ffffff;
+    /* White border */
+}
