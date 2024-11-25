@@ -5,6 +5,7 @@ import LP from './components/Pages/landingpage';
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Header from './components/header';
 import Footer from './components/Footer';
+import UpdateProfile from "./components/updated_profile";
 
 export default function App() {
   return (
@@ -18,7 +19,7 @@ export default function App() {
           <Route path="/landingpage" element={<LP />} />
           <Route path="/Header" element={<Header />} />
           <Route path="/Footer" element={<Footer />} />
-
+          <Route path="/updated_profile" element={<UpdateProfile />} />
         </Routes>
       </BrowserRouter>
 

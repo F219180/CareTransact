@@ -6,6 +6,8 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebase.js";
 import { Toaster, toast } from "sonner";
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 function Signup() {
     const [email, setEmail] = useState('');
@@ -20,6 +22,8 @@ function Signup() {
         specialChar: false,
         passwordMatch: false
     });
+
+    const navigate = useNavigate();
 
     const validatePassword = (password, confirmPassword) => {
         const lengthValid = password.length >= 6;
@@ -57,6 +61,7 @@ function Signup() {
         setConfirmPassword(newConfirmPassword);
         validatePassword(password, newConfirmPassword);
     };
+
     const validatePakistaniEmail = (email) => {
         const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(pk|com|org|edu|gov|mil)$/;
         return emailRegex.test(email);
@@ -64,32 +69,22 @@ function Signup() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!validatePakistaniEmail(email)) {
-            toast.error("Invalid email! Please enter a valid email!", {
-                style: {
-                    backgroundColor: "#f44336",
-                    color: "#fff",
-                },
-            });
-            return; // Prevent form submission
-        }
         try {
-            await createUserWithEmailAndPassword(auth, email, password);
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            axios.post('http://localhost:5000/api/auth/create-profile', { email })
+                .then(response => console.log(response.data))
+                .catch(error => console.error(error));
             toast.success("Successfully signed up!", {
-                style: {
-                    backgroundColor: "#4caf50", // Bright green
-                    color: "#fff"
-                },
+                style: { backgroundColor: "#4caf50", color: "#fff" }
             });
+            navigate('/updated_profile'); // Navigate to updated profile
         } catch (error) {
             toast.error(`Error: ${error.message}`, {
-                style: {
-                    backgroundColor: "#f44336", // Bright red
-                    color: "#fff"
-                },
+                style: { backgroundColor: "#f44336", color: "#fff" }
             });
         }
     };
+
     const togglePasswordVisibility = (e) => {
         e.preventDefault();
         setShowPassword(!showPassword);

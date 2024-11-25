@@ -6,6 +6,9 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebase.js";
 import { Toaster, toast } from "sonner";
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+
 function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -15,25 +18,29 @@ function Login() {
         e.preventDefault();
         setShowPassword(!showPassword);
     };
-    console.log("login component rendered")
+
+    const navigate = useNavigate();
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await signInWithEmailAndPassword(auth, email, password);
-            console.log("user logged in successsfully");
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            axios.post('http://localhost:5000/api/auth/create-profile', { email })
+                .then(response => console.log(response.data))
+                .catch(error => console.error(error));
             toast.success("Successfully Logged in!", {
-                style: { backgroundColor: "#4caf50", color: "#fff" }, // Green background, white text
+                style: { backgroundColor: "#4caf50", color: "#fff" }
             });
-
+            navigate('/updated_profile'); // Navigate to updated profile
         } catch (error) {
-            console.log(error.message);
             toast.error(`Error: ${error.message}`, {
-                style: { backgroundColor: "#f44336", color: "#fff" }, // Red background, white text
+                style: { backgroundColor: "#f44336", color: "#fff" }
             });
         }
         console.log('email: ', email);
         console.log('Password: ', password);
     };
+
     return (
         <>
             <Header />
