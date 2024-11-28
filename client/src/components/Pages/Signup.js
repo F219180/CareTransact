@@ -1,13 +1,15 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import './login_signup.css';
 import Header from "../header.js";
 import Footer from "../Footer.js";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, sendEmailVerification, onAuthStateChanged, reload } from "firebase/auth";
 import { auth } from "../firebase.js";
 import { Toaster, toast } from "sonner";
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { db } from "../firebase"; // Adjust the path to your firebase.js
+import { doc, setDoc } from "firebase/firestore";
 
 function Signup() {
     const [email, setEmail] = useState('');
@@ -23,7 +25,70 @@ function Signup() {
         passwordMatch: false
     });
 
+    const [emailVerificationSent, setEmailVerificationSent] = useState(false);
+    const [isEmailVerified, setIsEmailVerified] = useState(false);
+
     const navigate = useNavigate();
+
+    useEffect(() => {
+        // Real-time listener for authentication state
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                try {
+                    // Manually reload user to get latest verification status
+                    await reload(user);
+
+                    // Check if verification email is sent
+                    if (!user.emailVerified) {
+                        if (!emailVerificationSent) {
+                            toast.info("Verification email sent. Please check your inbox.", {
+                                style: { backgroundColor: "#2196f3", color: "#fff" },
+                                duration: 5000
+                            });
+                            setEmailVerificationSent(true);
+                        }
+                    } else {
+                        // Email is verified
+                        if (!isEmailVerified) {
+                            toast.success("Email verified! You can now login.", {
+                                style: { backgroundColor: "#4caf50", color: "#fff" },
+                                duration: 5000
+                            });
+                            setIsEmailVerified(true);
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error checking verification status:", error);
+                }
+            }
+        });
+
+        // Periodic check for email verification
+        const verificationCheckInterval = setInterval(async () => {
+            const currentUser = auth.currentUser;
+            if (currentUser && !currentUser.emailVerified) {
+                try {
+                    await reload(currentUser);
+                    if (currentUser.emailVerified) {
+                        toast.success("Email verified! You can now login.", {
+                            style: { backgroundColor: "#4caf50", color: "#fff" },
+                            duration: 5000
+                        });
+                        setIsEmailVerified(true);
+                        clearInterval(verificationCheckInterval);
+                    }
+                } catch (error) {
+                    console.error("Periodic verification check error:", error);
+                }
+            }
+        }, 5000); // Check every 5 seconds
+
+        // Cleanup subscriptions
+        return () => {
+            unsubscribe();
+            clearInterval(verificationCheckInterval);
+        };
+    }, [emailVerificationSent, isEmailVerified, navigate]);
 
     const validatePassword = (password, confirmPassword) => {
         const lengthValid = password.length >= 6;
@@ -50,6 +115,69 @@ function Signup() {
         return { width: '0%', backgroundColor: '#e0e0e0', text: '' };
     };
 
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        try {
+            // Create user with email and password
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+
+            // Send email verification
+            await sendEmailVerification(user);
+
+            // Reset verification states
+            setEmailVerificationSent(false);
+            setIsEmailVerified(false);
+
+            // Toast for verification email sent
+            toast.info("Verification email sent. Please check your inbox.", {
+                style: { backgroundColor: "#2196f3", color: "#fff" }
+            });
+
+            // Periodic verification check
+            const verificationCheckInterval = setInterval(async () => {
+                await reload(user); // Reload to fetch the latest verification status
+
+                if (user.emailVerified) {
+                    // Email is verified
+                    clearInterval(verificationCheckInterval); // Stop the interval check
+
+                    // Save user details to Firestore
+                    await setDoc(doc(db, "users", user.uid), {
+                        email: user.email,
+                        uid: user.uid,
+                        createdAt: new Date().toISOString()
+                    });
+                    // Create user profile in the backend
+                    await axios.post('http://localhost:5000/api/auth/create-profile', {
+                        email: user.email,
+                        uid: user.uid
+                    });
+
+                    // Notify the user
+                    toast.success("Email verified! Your account is now active.", {
+                        style: { backgroundColor: "#4caf50", color: "#fff" }
+                    });
+                    setIsEmailVerified(true);
+                }
+            }, 4000); // Check every 5 seconds
+        } catch (error) {
+            if (error.code === "auth/email-already-in-use") {
+                // Handle already registered email
+                toast.error("This email is already registered but not verified. Please verify your email.", {
+                    style: { backgroundColor: "#f44336", color: "#fff" }
+                });
+            } else {
+                // Handle other errors
+                toast.error(`Error: ${error.message}`, {
+                    style: { backgroundColor: "#f44336", color: "#fff" }
+                });
+            }
+        }
+    };
+
+
     const handlePasswordChange = (e) => {
         const newPassword = e.target.value;
         setPassword(newPassword);
@@ -66,25 +194,6 @@ function Signup() {
         const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(pk|com|org|edu|gov|mil)$/;
         return emailRegex.test(email);
     };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-            axios.post('http://localhost:5000/api/auth/create-profile', { email })
-                .then(response => console.log(response.data))
-                .catch(error => console.error(error));
-            toast.success("Successfully signed up!", {
-                style: { backgroundColor: "#4caf50", color: "#fff" }
-            });
-            navigate('/updated_profile'); // Navigate to updated profile
-        } catch (error) {
-            toast.error(`Error: ${error.message}`, {
-                style: { backgroundColor: "#f44336", color: "#fff" }
-            });
-        }
-    };
-
     const togglePasswordVisibility = (e) => {
         e.preventDefault();
         setShowPassword(!showPassword);
