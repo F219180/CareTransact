@@ -23,24 +23,48 @@ function Login() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+    
         try {
+            // Attempt to sign in the user
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
-            axios.post('http://localhost:5000/api/auth/create-profile', { email })
-                .then(response => console.log(response.data))
-                .catch(error => console.error(error));
-            toast.success("Successfully Logged in!", {
-                style: { backgroundColor: "#4caf50", color: "#fff" }
-            });
-            navigate('/updated_profile'); // Navigate to updated profile
+            const user = userCredential.user; // Get the user details
+    
+            // Check if the email is verified
+            if (user.emailVerified) {
+                // If the email is verified, show success toaster
+                toast.success("Successfully logged in!", {
+                    style: { backgroundColor: "#4caf50", color: "#fff" }
+                });
+    
+                // Wait for the toaster to show for 3 seconds before navigating
+                setTimeout(() => {
+                    // Call your backend to create the profile (if needed)
+                    axios.post('http://localhost:5000/api/auth/create-profile', { email })
+                        .then(response => console.log(response.data))
+                        .catch(error => console.error(error));
+    
+                    // Navigate to the updated profile page
+                    navigate('/updated_profile');
+                }, 3000); // Wait for 3 seconds
+    
+            } else {
+                // If the email is not verified, show an error toaster
+                toast.error("Please verify your email before logging in.", {
+                    style: { backgroundColor: "#f44336", color: "#fff" }
+                });
+            }
+    
         } catch (error) {
+            // Show error if login fails
             toast.error(`Error: ${error.message}`, {
                 style: { backgroundColor: "#f44336", color: "#fff" }
             });
         }
+    
         console.log('email: ', email);
         console.log('Password: ', password);
     };
-
+    
     return (
         <>
             <Header />
