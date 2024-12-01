@@ -1,20 +1,26 @@
-require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./utils/db');
-const app=express();
-const router = require('./router/auth_router');
-const connectDB = require("./utils/db");
-app.use(cors());
-app.use(express.json());
-app.use('/api/auth', router);
+const authRouter = require('./router/auth_router');
+require('dotenv').config();
 
-const PORT = 5000;
+const app = express();
+
+// Middleware
+app.use(cors({ origin: 'http://localhost:3000', methods: ['GET', 'POST', 'PUT', 'DELETE'] }));
+app.use(express.json());
+
+// Routes
+app.use('/api/auth', authRouter);
+
+// Database Connection and Server Start
+const PORT = process.env.PORT || 5000;
+
 connectDB().then(() => {
     app.listen(PORT, () => {
-        console.log(`server is running at port:${PORT}`);
+        console.log(`Server is running on port ${PORT}`);
     });
 }).catch((error) => {
-    console.error('Error connecting to database:', error);
+    console.error('Error connecting to the database:', error);
     process.exit(1);
 });
