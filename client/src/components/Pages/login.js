@@ -8,11 +8,14 @@ import { Toaster, toast } from "sonner";
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext.js';
+
 
 function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
+    const { setEmail: setEmailInAuth } = useAuth();
 
     const togglePasswordVisibility = (e) => {
         e.preventDefault();
@@ -23,48 +26,42 @@ function Login() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-    
+
         try {
-            // Attempt to sign in the user
+            // Sign in the user
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
-            const user = userCredential.user; // Get the user details
-    
+            const user = userCredential.user;
+
             // Check if the email is verified
             if (user.emailVerified) {
-                // If the email is verified, show success toaster
+                // Call backend to check user type
+                const response = await axios.post('http://localhost:5000/api/auth/check-user-type', { email });
+                const userType = response.data.userType;
+
                 toast.success("Successfully logged in!", {
                     style: { backgroundColor: "#4caf50", color: "#fff" }
                 });
-    
-                // Wait for the toaster to show for 3 seconds before navigating
+
+                // Set email in AuthContext
+                setEmailInAuth(email);
+
+                // Redirect based on user type
                 setTimeout(() => {
-                    // Call your backend to create the profile (if needed)
-                    axios.post('http://localhost:5000/api/auth/create-profile', { email })
-                        .then(response => console.log(response.data))
-                        .catch(error => console.error(error));
-    
-                    // Navigate to the updated profile page
-                    navigate('/updated_profile');
-                }, 3000); // Wait for 3 seconds
-    
+                    navigate(userType === 'doctor' ? '/Doctor' : '/updated_profile');
+                }, 3000); // Delay for toast notification
             } else {
-                // If the email is not verified, show an error toaster
                 toast.error("Please verify your email before logging in.", {
                     style: { backgroundColor: "#f44336", color: "#fff" }
                 });
             }
-    
         } catch (error) {
-            // Show error if login fails
             toast.error(`Error: ${error.message}`, {
                 style: { backgroundColor: "#f44336", color: "#fff" }
             });
         }
-    
-        console.log('email: ', email);
-        console.log('Password: ', password);
     };
-    
+
+
     return (
         <>
             <Header />
