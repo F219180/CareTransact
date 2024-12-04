@@ -47,7 +47,7 @@ function Login() {
 
                 // Redirect based on user type
                 setTimeout(() => {
-                    navigate(userType === 'doctor' ? '/Doctor' : '/updated_profile');
+                    navigate(userType === 'doctor' ? '/Doctor' : '/profilePatient');
                 }, 3000); // Delay for toast notification
             } else {
                 toast.error("Please verify your email before logging in.", {
