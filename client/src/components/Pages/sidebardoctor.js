@@ -3,7 +3,7 @@ import "./sidebarPatient.css";
 import NavIcon from "../../assets/images/nav_icon.png";
 import Logo from "../../assets/images/CT_logo.png";
 import LogoutIcon from "../../assets/images/logout.png";
-
+//comminting
 const Sidebardoctor = ({ isSidebarVisible, toggleSidebar }) => {
     return (
         <>
