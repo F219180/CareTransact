@@ -1,33 +1,90 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useAuth } from "../../context/AuthContext";
 import "./profilePatient.css";
-import DefaultProfilePic from "../../assets/images/image.jpg"; // Default profile picture
-import EditIcon from "../../assets/images/edit_profile.png"; // Edit icon for profile picture
+import DefaultProfilePic from "../../assets/images/image.jpg";
+import EditIcon from "../../assets/images/edit_profile.png";
+import axios from "axios";
 
 const ProfilePatient = ({ isSidebarVisible }) => {
-    const [isEditMode, setIsEditMode] = useState(false); // State to toggle edit mode
-    const [profileImage, setProfileImage] = useState(DefaultProfilePic); // State for the profile picture
+    const { email } = useAuth();
+    const [isEditMode, setIsEditMode] = useState(false);
     const [profileData, setProfileData] = useState({
-        name: "Mrs. Maria Waston",
-        email: "mariawaston2022@gmail.com",
-        sex: "Female",
-        age: "28",
-        bloodGroup: "A+",
-        cnic: "12345-6789012-3",
-        contactNumber: "0300-1234567",
-        dob: "1995-01-15",
-        maritalStatus: "Married",
+        name: "",
+        email: "",
+        gender: "",
+        age: "",
+        bloodGroup: "",
+        cnic: "",
+        contactNumber: "",
+        dob: "",
+        maritalStatus: "",
     });
+    const [profileImage, setProfileImage] = useState(DefaultProfilePic);
+    const [errors, setErrors] = useState({});
+
+    useEffect(() => {
+        if (email) {
+            axios
+                .get(`http://localhost:5000/api/auth/patient-details`, { params: { email } })
+                .then((response) => {
+                    const data = response.data;
+                    setProfileData(data);
+                    if (data.profilePicture) {
+                        setProfileImage(data.profilePicture);
+                    }
+                })
+                .catch((error) => {
+                    console.error("Error fetching patient details:", error);
+                });
+        }
+    }, [email]);
 
     const toggleEditMode = () => {
         setIsEditMode(!isEditMode);
+        setErrors({});
+    };
+
+    const validateFields = () => {
+        const newErrors = {};
+        const cnicRegex = /^\d{5}-\d{7}-\d{1}$/;
+        const phoneRegex = /^03\d{9}$/;
+        const today = new Date();
+
+        if (!profileData.cnic.match(cnicRegex)) {
+            newErrors.cnic = "Invalid CNIC format (e.g., 12345-6789012-3).";
+        }
+        if (!profileData.contactNumber.match(phoneRegex)) {
+            newErrors.contactNumber = "Invalid phone number format.";
+        }
+        if (new Date(profileData.dob) >= today) {
+            newErrors.dob = "Date of Birth must be in the past.";
+        }
+        if (profileData.age < 0) {
+            newErrors.age = "Age cannot be negative.";
+        }
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    const saveChanges = () => {
+        if (!validateFields()) return;
+
+        const updatedProfile = { ...profileData, profilePicture: profileImage };
+        axios
+            .put(`http://localhost:5000/api/auth/update-patient`, updatedProfile)
+            .then(() => {
+                setIsEditMode(false);
+                console.log("Profile updated successfully!");
+            })
+            .catch((error) => {
+                console.error("Error updating profile:", error);
+            });
     };
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        setProfileData({
-            ...profileData,
-            [name]: value,
-        });
+        if (name === "age" && value < 0) return; // Prevent negative age
+        setProfileData({ ...profileData, [name]: value });
     };
 
     const handleImageChange = (e) => {
@@ -35,21 +92,21 @@ const ProfilePatient = ({ isSidebarVisible }) => {
         if (file) {
             const reader = new FileReader();
             reader.onload = (event) => {
-                setProfileImage(event.target.result); // Update profile picture preview
+                setProfileImage(event.target.result);
             };
             reader.readAsDataURL(file);
         }
     };
 
-    const saveChanges = () => {
-        setIsEditMode(false);
-        console.log("Profile updated:", profileData);
+    const formatDate = (dateString) => {
+        if (!dateString) return "N/A";
+        const date = new Date(dateString);
+        return `${String(date.getDate()).padStart(2, "0")}-${String(date.getMonth() + 1).padStart(2, "0")}-${date.getFullYear()}`;
     };
 
     return (
         <div className={`profile-page ${isSidebarVisible ? "" : "sidebar-hidden"}`}>
             <div className={`profile-card ${isEditMode ? "edit-mode" : ""}`}>
-                {/* Profile Image */}
                 <div className="profile-image-container">
                     <img src={profileImage} alt="Profile" className="profile-image" />
                     {isEditMode && (
@@ -70,10 +127,7 @@ const ProfilePatient = ({ isSidebarVisible }) => {
                         </>
                     )}
                 </div>
-
-                {/* Email and Edit Button */}
                 <div className="profile-info">
-                    <h3>{profileData.name}</h3>
                     <p>{profileData.email}</p>
                     <button
                         className="edit-btn"
@@ -82,11 +136,10 @@ const ProfilePatient = ({ isSidebarVisible }) => {
                         {isEditMode ? "Save Changes" : "Edit Profile"}
                     </button>
                 </div>
-
-                {/* Profile Details */}
                 <div className="profile-details">
                     {[
-                        { label: "Sex", name: "sex", type: "select", options: ["Female", "Male", "Other"] },
+                        { label: "Name", name: "name", type: "text" },
+                        { label: "Gender", name: "gender", type: "select", options: ["Male", "Female", "Other"] },
                         { label: "Age", name: "age", type: "number" },
                         { label: "Blood Group", name: "bloodGroup", type: "select", options: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] },
                         { label: "CNIC", name: "cnic", type: "text" },
@@ -100,11 +153,11 @@ const ProfilePatient = ({ isSidebarVisible }) => {
                                 type === "select" ? (
                                     <select
                                         name={name}
-                                        value={profileData[name]}
+                                        value={profileData[name] || ""}
                                         onChange={handleInputChange}
                                         className="profile-input"
                                     >
-                                        {options.map((option) => (
+                                        {["N/A", ...options].map((option) => (
                                             <option key={option} value={option}>
                                                 {option}
                                             </option>
@@ -114,14 +167,19 @@ const ProfilePatient = ({ isSidebarVisible }) => {
                                     <input
                                         type={type}
                                         name={name}
-                                        value={profileData[name]}
+                                        value={profileData[name] || ""}
                                         onChange={handleInputChange}
                                         className="profile-input"
                                     />
                                 )
                             ) : (
-                                <p>{profileData[name]}</p>
+                                <p>
+                                    {name === "dob"
+                                        ? formatDate(profileData[name])
+                                        : profileData[name] || "N/A"}
+                                </p>
                             )}
+                            {errors[name] && <span className="error">{errors[name]}</span>}
                         </div>
                     ))}
                 </div>

@@ -115,65 +115,48 @@ function Signup() {
         return { width: '0%', backgroundColor: '#e0e0e0', text: '' };
     };
 
+    const handleSaveEmailToDatabase = async () => {
+        try {
+            const response = await axios.post('http://localhost:5000/api/auth/patients', { email });
+            if (response.status === 201) {
+                toast.success("Email successfully saved to the database!", {
+                    style: { backgroundColor: "#4caf50", color: "#fff" },
+                });
+            } else {
+                toast.error("Failed to save email.", {
+                    style: { backgroundColor: "#f44336", color: "#fff" },
+                });
+            }
+        } catch (error) {
+            console.error("Error saving email to database:", error);
+            toast.error("An error occurred while saving the email.", {
+                style: { backgroundColor: "#f44336", color: "#fff" },
+            });
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
         try {
-            // Create user with email and password
+            // Existing Firebase email/password creation logic
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
-            // Send email verification
             await sendEmailVerification(user);
 
-            // Reset verification states
-            setEmailVerificationSent(false);
-            setIsEmailVerified(false);
-
-            // Toast for verification email sent
             toast.info("Verification email sent. Please check your inbox.", {
-                style: { backgroundColor: "#2196f3", color: "#fff" }
+                style: { backgroundColor: "#2196f3", color: "#fff" },
             });
 
-            // Periodic verification check
-            const verificationCheckInterval = setInterval(async () => {
-                await reload(user); // Reload to fetch the latest verification status
+            // Save the email to the Patient collection in the database
+            await handleSaveEmailToDatabase();
 
-                if (user.emailVerified) {
-                    // Email is verified
-                    clearInterval(verificationCheckInterval); // Stop the interval check
-
-                    // Save user details to Firestore
-                    await setDoc(doc(db, "users", user.uid), {
-                        email: user.email,
-                        uid: user.uid,
-                        createdAt: new Date().toISOString()
-                    });
-                    // Create user profile in the backend
-                    await axios.post('http://localhost:5000/api/auth/create-profile', {
-                        email: user.email,
-                        uid: user.uid
-                    });
-
-                    // Notify the user
-                    toast.success("Email verified! Your account is now active.", {
-                        style: { backgroundColor: "#4caf50", color: "#fff" }
-                    });
-                    setIsEmailVerified(true);
-                }
-            }, 4000); // Check every 5 seconds
         } catch (error) {
-            if (error.code === "auth/email-already-in-use") {
-                // Handle already registered email
-                toast.error("This email is already registered but not verified. Please verify your email.", {
-                    style: { backgroundColor: "#f44336", color: "#fff" }
-                });
-            } else {
-                // Handle other errors
-                toast.error(`Error: ${error.message}`, {
-                    style: { backgroundColor: "#f44336", color: "#fff" }
-                });
-            }
+            console.error("Error during signup:", error);
+            toast.error(`Signup failed: ${error.message}`, {
+                style: { backgroundColor: "#f44336", color: "#fff" },
+            });
         }
     };
 

@@ -63,14 +63,66 @@ router.post('/doctors', async (req, res) => {
 
 // Add Patient Profile
 router.post('/patients', async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
+    }
+
     try {
-        const patient = new Patient(req.body);
+        // Create a new patient record with only the email field populated
+        const patient = new Patient({ email });
         await patient.save();
-        res.status(201).json({ message: 'Patient profile created', patient });
+
+        res.status(201).json({ message: 'Patient email saved successfully', patient });
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        console.error('Error saving patient email:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
+
+
+// Route to get patient details by email
+router.get('/patient-details', async (req, res) => {
+    const { email } = req.query;
+
+    if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
+    }
+
+    try {
+        const patient = await Patient.findOne({ email });
+        if (!patient) {
+            return res.status(404).json({ error: 'Patient not found' });
+        }
+
+        res.status(200).json(patient);
+    } catch (error) {
+        console.error('Error fetching patient details:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+router.put('/update-patient', async (req, res) => {
+    const { email, ...updatedFields } = req.body;
+
+    try {
+        const patient = await Patient.findOneAndUpdate(
+            { email },
+            updatedFields,
+            { new: true }
+        );
+        if (!patient) {
+            return res.status(404).json({ error: 'Patient not found' });
+        }
+        res.status(200).json({ message: 'Patient details updated', patient });
+    } catch (error) {
+        console.error('Error updating patient details:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+
 
 // Schedule Appointment
 router.post('/appointments', async (req, res) => {
@@ -83,25 +135,6 @@ router.post('/appointments', async (req, res) => {
     }
 });
 
-// Get All Doctors
-router.get('/doctors', async (req, res) => {
-    try {
-        const doctors = await Doctor.find();
-        res.status(200).json(doctors);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// Get All Patients
-router.get('/patients', async (req, res) => {
-    try {
-        const patients = await Patient.find();
-        res.status(200).json(patients);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
 
 // Get All Appointments
 router.get('/appointments', async (req, res) => {
