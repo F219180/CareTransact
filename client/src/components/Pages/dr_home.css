@@ -1,27 +1,228 @@
-.doctor-dashboard {
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    min-height: 100vh;
+/* Global Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
-.stat-card {
-    background: white;
-    border-radius: 15px;
-    padding: 1.5rem;
-    transition: transform 0.3s ease;
+body {
+    font-family: 'Poppins', sans-serif;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
 }
 
-.stat-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+/* Main Container */
+.doc-home-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background: url('../../assets/images/patinet_bg.avif') no-repeat center center / cover;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: padding-left 0.3s ease;
 }
 
-.gradient-button {
-    background: linear-gradient(45deg, #1976d2 30%, #64b5f6 90%);
-    color: white;
+/* Sidebar */
+.sidebar-visible {
+    padding-left: 270px; /* Adjusted gap */
+}
+
+.sidebar-hidden {
+    padding-left: 0;
+}
+
+/* Profile Card */
+.doctor-profile-card {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #e4f0f8;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease-in-out;
+    flex-direction: row;
+    color: #002d5b;
+    gap: 20px;
+    max-width: 60%;
+    max-height: 70vh;
+    width: 100%;
+}
+
+/* Increase size when sidebar is visible */
+.doctor-profile-card.with-sidebar {
+    max-width: 95%;
+    max-height: 95vh;
+    margin: 0 auto;
+}
+
+.doctor-profile-card.no-sidebar {
+    max-width: 120%;
+    margin: auto;
+}
+
+/* Left Section - Doctor Image */
+.profile-image-container-doc {
+    flex: 1;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.profile-image-doc {
+    width: 100%;
+    max-height: 60vh;
+    object-fit: cover;
+    border-radius: 0;
+    background-color: transparent;
+    mix-blend-mode: multiply; /* or try screen, lighten, etc. */
+}
+
+
+/* Right Section - Profile Details */
+.profile-details {
+    flex: 2;
+}
+
+.profile-details h3 {
+    font-weight: 800;
+    font-size: 24px;
+}
+
+.profile-details .specialty {
+    font-size: 16px;
+    margin-top: 10px;
+    font-weight: 500;
+}
+
+.profile-details h4,
+.profile-details p {
+    margin-top: 10px;
+    font-weight: 600;
+}
+
+.profile-details ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 10px 0;
+}
+
+/* Responsiveness for small screens */
+@media (max-width: 768px) {
+    .doc-home-container {
+        padding-left: 0;
+    }
+    .doctor-profile-card {
+        flex-direction: column;
+        width: 90%;
+    }
+
+    .doctor-profile-card.with-sidebar {
+        width: 85%;
+    }
+
+    .doctor-profile-card.no-sidebar {
+        width: 90%;
+    }
+
+    .profile-image-container-doc {
+        margin-bottom: 20px;
+    }
+}
+
+/* Edit Profile Button */
+.edit-profile-btn {
+    background-color: #002d5b;
+    padding: 10px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    color: #ffffff;
+    font-size: 1rem;
+    font-weight: bold;
     transition: all 0.3s ease;
+    position: relative; /* Enables precise positioning */
+    top: 4px; /* Moves the button slightly downward */
+    box-shadow: none; /* Removes any shadow */
 }
 
-.gradient-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(25, 118, 210, 0.3);
+
+.edit-profile-btn:hover {
+    background: #003b7d;
+}
+
+/* Edit Profile Form */
+.edit-profile-form {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #fff;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    width: auto;
+    max-width: 70%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.edit-profile-form.active {
+    display: block;
+}
+
+/* Form fields */
+.edit-profile-form .form-group input,
+.edit-profile-form .form-group select,
+.edit-profile-form .form-group textarea {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+/* Scrollable Profile Form */
+.scrollable-form-container {
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.scrollable-form-container::-webkit-scrollbar {
+    width: 5px;
+}
+
+.scrollable-form-container::-webkit-scrollbar-thumb {
+    background-color: #cccccc;
+}
+
+/* Number Control */
+.number-control {
+    position: relative;
+    width: 100%;
+}
+
+.number-control input {
+    width: 100%;
+    padding: 8px 35px 8px 10px;
+}
+
+/* Edit Icon */
+.edit-icon {
+    position: absolute;
+    cursor: pointer;
+    margin-left: 165px;
+    margin-top: 275px;
+}
+
+.edit-icon-image {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
 }
