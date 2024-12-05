@@ -28,7 +28,8 @@ body {
 
 /* Sidebar */
 .sidebar-visible {
-    padding-left: 270px; /* Adjusted gap */
+    padding-left: 270px;
+    /* Adjusted gap */
 }
 
 .sidebar-hidden {
@@ -48,7 +49,7 @@ body {
     flex-direction: row;
     color: #002d5b;
     gap: 20px;
-    max-width: 60%;
+    max-width: 100%;
     max-height: 70vh;
     width: 100%;
 }
@@ -61,7 +62,7 @@ body {
 }
 
 .doctor-profile-card.no-sidebar {
-    max-width: 120%;
+    max-width: 180%;
     margin: auto;
 }
 
@@ -81,7 +82,8 @@ body {
     object-fit: cover;
     border-radius: 0;
     background-color: transparent;
-    mix-blend-mode: multiply; /* or try screen, lighten, etc. */
+    mix-blend-mode: multiply;
+    /* or try screen, lighten, etc. */
 }
 
 
@@ -118,6 +120,7 @@ body {
     .doc-home-container {
         padding-left: 0;
     }
+
     .doctor-profile-card {
         flex-direction: column;
         width: 90%;
@@ -146,9 +149,12 @@ body {
     font-size: 1rem;
     font-weight: bold;
     transition: all 0.3s ease;
-    position: relative; /* Enables precise positioning */
-    top: 4px; /* Moves the button slightly downward */
-    box-shadow: none; /* Removes any shadow */
+    position: relative;
+    /* Enables precise positioning */
+    top: 4px;
+    /* Moves the button slightly downward */
+    box-shadow: none;
+    /* Removes any shadow */
 }
 
 
@@ -210,7 +216,60 @@ body {
 
 .number-control input {
     width: 100%;
-    padding: 8px 35px 8px 10px;
+    padding-right: 70px;
+    /* Add padding to make space for buttons */
+    padding-left: 10px;
+    /* Normal left padding */
+    height: 40px;
+    /* Adjust height for better appearance */
+    box-sizing: border-box;
+}
+
+/* Plus and Minus Buttons */
+.number-control .plus,
+.number-control .minus {
+    position: absolute;
+    right: 5px;
+    /* Align the buttons to the right */
+    top: 50%;
+    transform: translateY(-50%);
+    width: 30px;
+    /* Increased width */
+    height: 30px;
+    /* Increased height for better appearance */
+    background-color: #002d5b;
+    /* Dark blue */
+    color: #ffffff;
+    /* White text */
+    border: none;
+    /* Remove border */
+    border-radius: 5px;
+    /* Rounded corners */
+    font-size: 16px;
+    /* Font size for better readability */
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    line-height: 30px;
+}
+
+/* Space between the Plus and Minus Buttons */
+.number-control .plus {
+    right: 40px;
+    /* Adjust the spacing */
+}
+
+.number-control .plus:hover,
+.number-control .minus:hover {
+    background-color: #003b7d;
+    /* Lighter blue on hover */
+}
+
+/* Remove focus outline for better UX */
+.number-control .plus:focus,
+.number-control .minus:focus {
+    outline: none;
 }
 
 /* Edit Icon */
