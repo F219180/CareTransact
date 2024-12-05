@@ -12,13 +12,19 @@ const doctorSchema = new mongoose.Schema({
 
 // Patient Schema (Profile information specific to patients)
 const patientSchema = new mongoose.Schema({
-    email: { type: String, required: true, unique: true },
-    name: { type: String, required: true },
-    phoneNumber: { type: String, required: true },
-    address: { type: String },
-    diseaseType: { type: String },
-    emergencyContact: { type: String }
+    email: { type: String, required: true, unique: true }, // Compulsory field
+    name: { type: String, default: "" },
+    gender: { type: String, enum: ["Female", "Male", "Other", null], default: null }, // Allow null
+    age: { type: Number, default: null },
+    bloodGroup: { type: String, enum: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", null], default: null }, // Allow null
+    cnic: { type: String, default: "" },
+    contactNumber: { type: String, default: "" },
+    dob: { type: Date, default: null },
+    maritalStatus: { type: String, enum: ["Married", "Single", "Divorced", "Widowed", null], default: null }, // Allow null
+    profilePicture: { type: String, default: "" }, // URL for storing profile picture
 });
+
+
 
 // Appointment Schema (Details about appointments)
 const appointmentSchema = new mongoose.Schema({
