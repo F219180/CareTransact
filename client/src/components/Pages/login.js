@@ -96,15 +96,19 @@ function Login() {
                                 onClick={togglePasswordVisibility}
                                 onMouseDown={(e) => e.preventDefault()}
                             >
-                                {showPassword ? <FaEyeSlash /> : <FaEye />}
+                                {showPassword ? <FaEye />:<FaEyeSlash />}
                             </span>
                         </div>
                         <div className="login-footer">
                             <button type="submit">Continue</button>
+                            <div className="forgot-password">
+                                <p><a href="/forgot-password"><b>Forgot Password?</b></a></p>
+                            </div>
                             <div className="signup">
                                 <p>Don't have an account?<a href="/signup"><b>Signup</b></a></p>
                             </div>
                         </div>
+
                     </div>
                     <div className="signup-image">
                         <img src="/signup.png" alt="signup" />

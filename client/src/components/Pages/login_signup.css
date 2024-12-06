@@ -64,6 +64,7 @@
 .login-footer,
 .signup-footer{
     margin-left: 10px;
+    
 }
 
 /* Signup link */
@@ -74,7 +75,8 @@
 }
 
 .signup-footer .signup a,
-.login-footer .signup a {
+.login-footer .signup a,
+.login-footer .forgot-password a {
     color: #000000;
     text-decoration: underline;
     font-weight: bold;
@@ -119,12 +121,11 @@
 .login-password-toggle-icon{
     position: absolute;
     right: 2px;
-    top: 50%;
     transform: translateY(-50%);
     cursor: pointer;
     color: #666;
     left: 630px;
-    top: 59%;
+    top: 56%;
     width: fit-content;
 }
 
@@ -255,4 +256,8 @@
     font-size: 0.9rem;
     margin-top: 5px;
     margin-left: 10px;
+}
+.login-footer .forgot-password{
+        gap: 5px;
+        font-size: 0.8rem;
 }

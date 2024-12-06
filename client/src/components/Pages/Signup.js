@@ -7,9 +7,8 @@ import { auth } from "../firebase.js";
 import { Toaster, toast } from "sonner";
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
 import { db } from "../firebase"; // Adjust the path to your firebase.js
-import { doc, setDoc } from "firebase/firestore";
+import { doc, getDoc , setDoc } from "firebase/firestore";
 
 function Signup() {
     const [email, setEmail] = useState('');
@@ -26,18 +25,17 @@ function Signup() {
     });
 
     const [emailVerificationSent, setEmailVerificationSent] = useState(false);
-    const [isEmailVerified, setIsEmailVerified] = useState(false);
+    const [emailVerifiedForCurrentSession, setEmailVerifiedForCurrentSession] = useState(false);
 
-    const navigate = useNavigate();
 
     useEffect(() => {
         // Real-time listener for authentication state
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
                 try {
-                    // Manually reload user to get latest verification status
+                    // Manually reload user to get the latest verification status
                     await reload(user);
-
+    
                     // Check if verification email is sent
                     if (!user.emailVerified) {
                         if (!emailVerificationSent) {
@@ -47,49 +45,58 @@ function Signup() {
                             });
                             setEmailVerificationSent(true);
                         }
-                    } else {
-                        // Email is verified
-                        if (!isEmailVerified) {
-                            toast.success("Email verified! You can now login.", {
-                                style: { backgroundColor: "#4caf50", color: "#fff" },
-                                duration: 5000
-                            });
-                            setIsEmailVerified(true);
-                        }
-                    }
+                    } 
                 } catch (error) {
                     console.error("Error checking verification status:", error);
                 }
             }
         });
-
-        // Periodic check for email verification
-        const verificationCheckInterval = setInterval(async () => {
-            const currentUser = auth.currentUser;
-            if (currentUser && !currentUser.emailVerified) {
-                try {
-                    await reload(currentUser);
-                    if (currentUser.emailVerified) {
-                        toast.success("Email verified! You can now login.", {
-                            style: { backgroundColor: "#4caf50", color: "#fff" },
-                            duration: 5000
-                        });
-                        setIsEmailVerified(true);
-                        clearInterval(verificationCheckInterval);
+    
+        // Periodic check for email verification and Firestore email existence
+        const verificationCheckInterval = () => {
+            const interval = setInterval(async () => {
+                const user = auth.currentUser;
+    
+                if (user && user.email === email) {
+                    try {
+                        await reload(user);
+    
+                        // Only show the success toast if the email is verified and exists in Firestore
+                        if (user.emailVerified && email !== "") {
+                            const userRef = doc(db, "users", user.uid); // Use uid to check in the users collection
+                            const userDoc = await getDoc(userRef);
+    
+                            if (userDoc.exists()) {
+                                if (!emailVerifiedForCurrentSession) {
+                                    setEmailVerifiedForCurrentSession(true); // Prevent repeated toasts
+                                    toast.success("Email verified! You can now login.", {
+                                        style: { backgroundColor: "#4caf50", color: "#fff" },
+                                        duration: 5000
+                                    });
+                                }
+                                clearInterval(interval); // Stop checking once verified and email exists in Firestore
+                            }
+                        }
+                    } catch (error) {
+                        console.error("Error during periodic verification check:", error);
                     }
-                } catch (error) {
-                    console.error("Periodic verification check error:", error);
                 }
-            }
-        }, 5000); // Check every 5 seconds
-
-        // Cleanup subscriptions
+            }, 3000); // Check every 3 seconds
+    
+            return interval;
+        };
+    
+        // Start the verification check interval
+        const interval = verificationCheckInterval();
+    
+        // Cleanup subscriptions and interval on component unmount
         return () => {
             unsubscribe();
-            clearInterval(verificationCheckInterval);
+            clearInterval(interval);
         };
-    }, [emailVerificationSent, isEmailVerified, navigate]);
-
+    }, [email, emailVerifiedForCurrentSession, emailVerificationSent]);
+    
+    
     const validatePassword = (password, confirmPassword) => {
         const lengthValid = password.length >= 6;
         const numberValid = /\d/.test(password);
@@ -114,44 +121,42 @@ function Signup() {
         }
         return { width: '0%', backgroundColor: '#e0e0e0', text: '' };
     };
-
-    const handleSaveEmailToDatabase = async () => {
+    const handleSaveEmailToDatabase = async (email, password, uid) => {
         try {
+            // Save email, password, date, and uid to the users collection
+            const userRef = doc(db, "users", uid); // Use uid as the document ID
+            await setDoc(userRef, {
+                email,
+                createdAt: new Date(),
+                uid
+            });
             const response = await axios.post('http://localhost:5000/api/auth/patients', { email });
             if (response.status === 201) {
-                toast.success("Email successfully saved to the database!", {
-                    style: { backgroundColor: "#4caf50", color: "#fff" },
-                });
-            } else {
-                toast.error("Failed to save email.", {
-                    style: { backgroundColor: "#f44336", color: "#fff" },
-                });
+                console.log("Email successfully saved to the database.");
             }
         } catch (error) {
-            console.error("Error saving email to database:", error);
-            toast.error("An error occurred while saving the email.", {
-                style: { backgroundColor: "#f44336", color: "#fff" },
-            });
+            console.error("Error saving email to Firestore or database:", error);
         }
     };
-
+    
     const handleSubmit = async (e) => {
         e.preventDefault();
-
+    
         try {
-            // Existing Firebase email/password creation logic
+            // Create the user with email and password
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
-
+    
+            // Send the verification email
             await sendEmailVerification(user);
-
+    
             toast.info("Verification email sent. Please check your inbox.", {
                 style: { backgroundColor: "#2196f3", color: "#fff" },
             });
-
-            // Save the email to the Patient collection in the database
-            await handleSaveEmailToDatabase();
-
+    
+            // Save email, password, and uid to Firestore (users collection)
+            await handleSaveEmailToDatabase(email, password, user.uid);
+    
         } catch (error) {
             console.error("Error during signup:", error);
             toast.error(`Signup failed: ${error.message}`, {
@@ -159,7 +164,7 @@ function Signup() {
             });
         }
     };
-
+    
 
     const handlePasswordChange = (e) => {
         const newPassword = e.target.value;
