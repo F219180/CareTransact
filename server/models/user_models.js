@@ -4,10 +4,10 @@ const mongoose = require('mongoose');
 const doctorSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true },
     name: { type: String, required: true },
-    specialization: { type: String, required: true },
-    experienceYears: { type: Number, required: true },
-    contactNumber: { type: String },
-    profilePicture: { type: String }, // URL for picture storage
+    specialization: { type: String, default: "N/A" }, // Added specialization field
+    education: { type: String, default: "N/A" },
+    services: { type: [String], default: [] },
+    profilePicture: { type: String, default: "N/A" }, // URL for picture storage
 });
 
 // Patient Schema (Profile information specific to patients)

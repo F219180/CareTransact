@@ -50,16 +50,7 @@ router.delete('/appointments/:id', async (req, res) => {
 
 
 
-// Add Doctor Profile
-router.post('/doctors', async (req, res) => {
-    try {
-        const doctor = new Doctor(req.body);
-        await doctor.save();
-        res.status(201).json({ message: 'Doctor profile created', doctor });
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
-});
+
 
 // Add Patient Profile
 router.post('/patients', async (req, res) => {
@@ -188,6 +179,99 @@ router.post('/doctor-details', async (req, res) => {
     }
 });
 
+router.get('/doctor-profile', async (req, res) => {
+    const { email } = req.query;
+
+    if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
+    }
+
+    try {
+        const doctor = await Doctor.findOne({ email });
+        if (!doctor) {
+            return res.status(404).json({ error: 'Doctor not found' });
+        }
+
+        res.status(200).json({
+            name: doctor.name || 'N/A',
+            specialization: doctor.specialization || 'N/A',
+            contactNumber: doctor.contactNumber || 'N/A',
+            profilePicture: doctor.profilePicture || null
+        });
+    } catch (error) {
+        console.error('Error fetching doctor details:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+
 
 
 module.exports = router;
+
+
+// Fetch doctor details
+router.post('/get-doctor', async (req, res) => {
+    const { email } = req.body;
+
+    try {
+        const doctor = await Doctor.findOne({ email });
+
+        if (!doctor) {
+            return res.status(404).json({ error: 'Doctor not found' });
+        }
+
+        res.status(200).json({
+            name: doctor.name || '',
+            specialization: doctor.specialization || '',
+            education: doctor.education || '',
+            services: doctor.services || [],
+            profilePicture: doctor.profilePicture || null,
+        });
+    } catch (error) {
+        console.error('Error fetching doctor:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Update doctor details
+router.put('/update-doctor', async (req, res) => {
+    const { email, name, specialization, education, services, profilePicture } = req.body;
+
+    try {
+        const updatedDoctor = await Doctor.findOneAndUpdate(
+            { email },
+            {
+                name: name || "N/A",
+                specialization: specialization || "N/A",
+                education: education || "N/A",
+                services: services || [],
+                profilePicture: profilePicture || "N/A",
+            },
+            { new: true, upsert: true }
+        );
+
+        if (!updatedDoctor) {
+            return res.status(404).json({ message: "Doctor not found" });
+        }
+
+        res.status(200).json({ message: "Doctor profile updated successfully", doctor: updatedDoctor });
+    } catch (error) {
+        console.error("Error updating doctor profile:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
+router.get('/doctor-details', async (req, res) => {
+    const { email } = req.query;
+
+    try {
+        const doctor = await Doctor.findOne({ email });
+        if (!doctor) {
+            return res.status(404).json({ message: "Doctor not found" });
+        }
+        res.status(200).json(doctor);
+    } catch (error) {
+        console.error("Error fetching doctor details:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+});

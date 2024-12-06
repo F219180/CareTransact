@@ -1,23 +1,41 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./dr_home.css";
-import DocImage from "../../assets/images/doc1.jpg";
+import DocImage from "../../assets/images/image.jpg";
 import editIcon from "../../assets/images/edit_profile.png";
+import { useAuth } from "../../context/AuthContext";
+import axios from "axios";
 
 const DoctorProfile = ({ isSidebarVisible, toggleSidebar }) => {
     const [isEditMode, setIsEditMode] = useState(false);
     const [profileData, setProfileData] = useState({
-        name: "Dr. Ahmed Masood Ghuman",
-        specialty: "Consultant Orthopedic Surgeon",
-        education: "MBBS, FRCS, AO Trauma Fellow, Germany",
-        services: [
-            "Joint Replacement Surgery",
-            "Arthroscopic Surgery",
-            "Trauma Surgery",
-            "Reconstructive Surgery",
-            "Sports Surgery",
-        ],
+        name: "N/A",
+        specialization: "N/A",
+        education: "N/A",
+        services: [],
+        profilePicture: "N/A",
     });
     const [uploadedImage, setUploadedImage] = useState(null);
+
+    const { email } = useAuth();
+
+    useEffect(() => {
+        const fetchDoctorDetails = async () => {
+            try {
+                const response = await axios.get("http://localhost:5000/api/auth/doctor-details", {
+                    params: { email },
+                });
+                const services = response.data.services === "N/A" ? [] : response.data.services;
+                setProfileData({
+                    ...response.data,
+                    services,
+                });
+            } catch (error) {
+                console.error("Error fetching doctor details:", error);
+            }
+        };
+
+        fetchDoctorDetails();
+    }, [email]);
 
     const toggleEditMode = () => {
         setIsEditMode(!isEditMode);
@@ -39,6 +57,15 @@ const DoctorProfile = ({ isSidebarVisible, toggleSidebar }) => {
         }
     };
 
+    const handleServiceChange = (index, value) => {
+        const newServices = [...profileData.services];
+        newServices[index] = value;
+        setProfileData({
+            ...profileData,
+            services: newServices,
+        });
+    };
+
     const addService = () => {
         setProfileData({
             ...profileData,
@@ -54,13 +81,17 @@ const DoctorProfile = ({ isSidebarVisible, toggleSidebar }) => {
         });
     };
 
-    const handleServiceChange = (index, value) => {
-        const newServices = [...profileData.services];
-        newServices[index] = value;
-        setProfileData({
-            ...profileData,
-            services: newServices,
-        });
+    const saveChanges = async () => {
+        try {
+            await axios.put("http://localhost:5000/api/auth/update-doctor", {
+                email,
+                ...profileData,
+                profilePicture: uploadedImage || profileData.profilePicture,
+            });
+            setIsEditMode(false);
+        } catch (error) {
+            console.error("Error updating profile:", error);
+        }
     };
 
     return (
@@ -69,7 +100,7 @@ const DoctorProfile = ({ isSidebarVisible, toggleSidebar }) => {
                 <div className={`doctor-profile-card ${isSidebarVisible ? "with-sidebar" : ""}`}>
                     <div className="profile-image-container-doc">
                         <img
-                            src={uploadedImage || DocImage}
+                            src={uploadedImage || (profileData.profilePicture === "N/A" ? DocImage : profileData.profilePicture)}
                             alt="Doctor"
                             className="profile-image-doc"
                         />
@@ -84,41 +115,43 @@ const DoctorProfile = ({ isSidebarVisible, toggleSidebar }) => {
                                 <img src={editIcon} alt="Edit" className="edit-icon-image" />
                             </label>
                         )}
-                        <button className="edit-profile-btn" onClick={toggleEditMode}>
+                        <button className="edit-profile-btn" onClick={isEditMode ? saveChanges : toggleEditMode}>
                             {isEditMode ? "Save Changes" : "Edit Profile"}
                         </button>
                     </div>
                     <div className={`profile-details ${isEditMode ? "scrollable-form-container" : ""}`}>
-                        {isEditMode && <h4>Full Name</h4>}
                         <h3>
                             {isEditMode ? (
-                                <input
-                                    type="text"
-                                    name="name"
-                                    value={profileData.name}
-                                    onChange={handleInputChange}
-                                    className="profile-input"
-                                />
+                                <>
+                                    <h4>Full Name</h4>
+                                    <input
+                                        type="text"
+                                        name="name"
+                                        value={profileData.name}
+                                        onChange={handleInputChange}
+                                        className="profile-input"
+                                    />
+                                </>
                             ) : (
                                 profileData.name
                             )}
                         </h3>
-                        <p className="specialty">
-                            {isEditMode && <h4>Specialty</h4>}
+                        <h4>Specialization</h4>
+                        <p>
                             {isEditMode ? (
                                 <input
                                     type="text"
-                                    name="specialty"
-                                    value={profileData.specialty}
+                                    name="specialization"
+                                    value={profileData.specialization}
                                     onChange={handleInputChange}
                                     className="profile-input"
                                 />
                             ) : (
-                                profileData.specialty
+                                profileData.specialization
                             )}
                         </p>
+                        <h4>Medical Education</h4>
                         <p>
-                            <h4>Medical Education:</h4>
                             {isEditMode ? (
                                 <input
                                     type="text"
@@ -144,12 +177,7 @@ const DoctorProfile = ({ isSidebarVisible, toggleSidebar }) => {
                                                 className="profile-input"
                                             />
                                             <button className="plus" onClick={addService}>+</button>
-                                            <button
-                                                className="minus"
-                                                onClick={() => removeService(index)}
-                                            >
-                                                -
-                                            </button>
+                                            <button className="minus" onClick={() => removeService(index)}>-</button>
                                         </div>
                                     ) : (
                                         service
@@ -157,6 +185,17 @@ const DoctorProfile = ({ isSidebarVisible, toggleSidebar }) => {
                                 </li>
                             ))}
                         </ul>
+                        {isEditMode && profileData.services.length === 0 && (
+                            <div className="number-control">
+                                <input
+                                    type="text"
+                                    placeholder="Add a service"
+                                    className="profile-input"
+                                    onChange={(e) => handleServiceChange(0, e.target.value)}
+                                />
+                                <button className="plus" onClick={addService}>+</button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
