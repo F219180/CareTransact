@@ -19,14 +19,14 @@ const Sidebardoctor = ({ isSidebarVisible, toggleSidebar }) => {
                     <h4>CareTransact</h4>
                 </div>
                 <ul className="sidebar-menu">
-                    <li><a href="/profilePatient">Home</a></li>
+                    <li><a href="/Doctor">Home</a></li>
                     <li><a href="/reports">Appointment Slots</a></li>
                     <li><a href="/prescriptions">Prescription</a></li>
                     <li><a href="/lab-results">Lab Results</a></li>
                     <li><a href="/reports">Reports</a></li>
                     <li><a href="/reports">Patients</a></li>
                     <li className="logout">
-                        <a href="/logout">
+                        <a href="/landingpage">
                             <img src={LogoutIcon} alt="Logout" className="logout-icon" /> <b>Logout</b>
                         </a>
                     </li>
