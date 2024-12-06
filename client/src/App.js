@@ -6,6 +6,7 @@ import LP from './components/Pages/landingpage';
 import Header from './components/header';
 import Footer from './components/Footer';
 import DrHome from "./components/Pages/dr_home";
+import AppointmentManagementCard from "./components/Pages/Doctor_appointment";
 import ProfilePatient from "./components/Pages/profilePatient";
 import SidebarPatient from "./components/Pages/sidebarPatient";
 import SidebarDoctor from "./components/Pages/sidebardoctor"; // Ensure correct import
@@ -26,6 +27,7 @@ const App = () => {
   // Determine which sidebar to show based on route
   const isDoctorPage = location.pathname === "/Doctor";
   const isPatientPage = location.pathname === "/profilePatient";
+  const isAppointmentPage = location.pathname === "/Doctor_appointment";
 
   return (
     <AuthProvider>
@@ -44,9 +46,15 @@ const App = () => {
               toggleSidebar={toggleSidebar}
             />
           )}
+           {isAppointmentPage && (
+            <SidebarDoctor
+              isSidebarVisible={isSidebarVisible}
+              toggleSidebar={toggleSidebar}
+            />
+          )}
 
           <Routes>
-            <Route index element={<LP />} />
+            <Route index element={<AppointmentManagementCard />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -55,6 +63,8 @@ const App = () => {
             <Route path="/Footer" element={<Footer />} />
             <Route path="/Doctor" element={<DrHome isSidebarVisible={isSidebarVisible} />} />
             <Route path="/profilePatient" element={<ProfilePatient isSidebarVisible={isSidebarVisible} />} />
+            <Route path="/Doctor_appointment" element={<AppointmentManagementCard isSidebarVisible={isSidebarVisible} />} />
+            
           </Routes>
         </div>
       </LocalizationProvider>
