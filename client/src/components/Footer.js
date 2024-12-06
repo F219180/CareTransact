@@ -54,7 +54,7 @@ function Footer() {
 
           <div className="col-lg-4">
             <h5>Contact</h5>
-            <p className="text-muted">Email: info@caretransact.com</p>
+            <p className="text-muted">Email: careTransact@caretransact.firebaseapp.com</p>
             <p className="text-muted">Phone: +1 234 567 890</p>
           </div>
         </div>

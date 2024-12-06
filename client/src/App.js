@@ -12,6 +12,7 @@ import SidebarDoctor from "./components/Pages/sidebardoctor"; // Ensure correct 
 import { AuthProvider } from './context/AuthContext';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import ForgotPassword from './components/Pages/forget_password';
 
 const App = () => {
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
@@ -48,6 +49,7 @@ const App = () => {
             <Route index element={<LP />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/landingpage" element={<LP />} />
             <Route path="/Header" element={<Header />} />
             <Route path="/Footer" element={<Footer />} />
