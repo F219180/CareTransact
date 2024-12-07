@@ -12,11 +12,106 @@ import {
     FaTimesCircle,
     FaSave
 } from 'react-icons/fa';
+import axios from 'axios'; // Import axios
+import { useAuth } from '../../context/AuthContext'; // Import useAuth hook
 
 // Initialize localizer for react-big-calendar
 const localizer = momentLocalizer(moment);
 
 const DoctorAppointmentDashboard = () => {
+    const { email } = useAuth();
+    // Validation errors state
+    const [categorizedSlots, setCategorizedSlots] = useState({
+        today: [],
+        tomorrow: [],
+        future: [],
+    });
+    useEffect(() => {
+        const fetchCategorizedSlots = async () => {
+            try {
+                const response = await axios.get('http://localhost:5000/api/auth/get-categorized-slots', {
+                    params: { doctorEmail: email },
+                });
+
+                const slots = response.data;
+                setCategorizedSlots({
+                    today: slots.today.sort((a, b) => new Date(a.date) - new Date(b.date)),
+                    tomorrow: slots.tomorrow.sort((a, b) => new Date(a.date) - new Date(b.date)),
+                    future: slots.future.sort((a, b) => new Date(a.date) - new Date(b.date)),
+                });
+            } catch (error) {
+                console.error("Error fetching categorized slots:", error);
+            }
+        };
+
+        if (email) {
+            fetchCategorizedSlots();
+        }
+    }, [email]);
+    const validateSlot = () => {
+        const newErrors = {};
+        const now = new Date();
+
+        if (!newSlot.date) newErrors.date = "Date is required.";
+        else if (new Date(newSlot.date) < now.setHours(0, 0, 0, 0)) {
+            newErrors.date = "Cannot select a past date.";
+        }
+        if (!newSlot.startTime) newErrors.startTime = "Start time is required.";
+        if (!newSlot.endTime) newErrors.endTime = "End time is required.";
+        else if (newSlot.startTime >= newSlot.endTime) {
+            newErrors.endTime = "End time must be after start time.";
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    // Free slots state
+    const [freeSlots, setFreeSlots] = useState([]);
+    const [errors, setErrors] = useState({
+        date: "",
+        startTime: "",
+        endTime: "",
+    });
+    useEffect(() => {
+        const fetchFreeSlots = async () => {
+            try {
+                const response = await axios.get('http://localhost:5000/api/auth/get-available-slots', {
+                    params: { doctorEmail: email },
+                });
+
+                setFreeSlots(response.data); // Update state with fetched slots
+            } catch (error) {
+                console.error("Error fetching available slots:", error.response?.data || error.message);
+                setFreeSlots([]); // Clear slots in case of an error
+            }
+        };
+
+        if (email) {
+            fetchFreeSlots();
+        }
+    }, [email]);
+
+
+    const handleAddFreeSlot = () => {
+        if (!validateSlot()) {
+            return; // Stop if there are validation errors
+        }
+
+        const slot = {
+            id: freeSlots.length + 1,
+            date: newSlot.date,
+            startTime: newSlot.startTime,
+            endTime: newSlot.endTime,
+        };
+
+        setFreeSlots([...freeSlots, slot]);
+        saveSlotToDatabase(slot); // Save slot to database
+        setIsSlotModalOpen(false);
+        setNewSlot({ date: '', startTime: '', endTime: '' });
+        setErrors({}); // Clear errors after successful submission
+    };
+
     // State for appointments
     const [futureAppointments, setFutureAppointments] = useState([
         { id: 1, patientName: 'John Doe', date: '2024-02-15', time: '10:00 AM', reason: 'Routine Checkup' },
@@ -31,11 +126,37 @@ const DoctorAppointmentDashboard = () => {
         { id: 2, patientName: 'Almas Aina', date: '2024-02-18', time: '02:30 PM', reason: 'Follow-up Consultation' }
     ]);
 
-    // Free slot state
-    const [freeSlots, setFreeSlots] = useState([
-        { id: 1, date: '2024-02-14', startTime: '10:00', endTime: '11:00' },
-        { id: 2, date: '2024-02-16', startTime: '01:00', endTime: '02:00' },
-    ]);
+
+    useEffect(() => {
+        if (!email) {
+            console.error("Email is missing in AuthContext.");
+        }
+    }, [email]);
+
+    const saveSlotToDatabase = async (slot) => {
+        try {
+            const response = await axios.post('http://localhost:5000/api/auth/save-appointment-slot', {
+                doctorEmail: email,
+                date: slot.date,
+                startTime: slot.startTime,
+                endTime: slot.endTime,
+            });
+
+            if (response.status === 201) {
+                alert("Slot saved successfully!");
+            } else {
+                alert(`Failed to save the slot. Status code: ${response.status}`);
+            }
+        } catch (error) {
+            if (error.response) {
+                alert(`Failed to save the slot. Error: ${error.response.data.error}`);
+            } else {
+                alert(`Failed to save the slot. Error: ${error.message}`);
+            }
+        }
+    };
+
+
 
     // Calendar events state
     const [calendarEvents, setCalendarEvents] = useState([]);
@@ -109,24 +230,7 @@ const DoctorAppointmentDashboard = () => {
         setPendingAppointments(pendingAppointments.filter(appt => appt.id !== appointment.id));
     };
 
-    const handleAddFreeSlot = () => {
-        if (newSlot.startTime >= newSlot.endTime) {
-            alert('End time must be after start time.');
-            return;
-        }
 
-        setFreeSlots([
-            ...freeSlots,
-            {
-                id: freeSlots.length + 1,
-                date: newSlot.date,
-                startTime: newSlot.startTime,
-                endTime: newSlot.endTime,
-            }
-        ]);
-        setIsSlotModalOpen(false);
-        setNewSlot({ date: '', startTime: '', endTime: '' });
-    };
 
     // Calendar navigation handlers
     const handlePreviousMonth = () => {
@@ -201,6 +305,8 @@ const DoctorAppointmentDashboard = () => {
                 </div>
 
                 {/* Free Slots Management Card */}
+                {/* Free Slots Management Card */}
+                {/* Free Slots Management Card */}
                 <div
                     className="dashboard-card slots-card"
                     onClick={() => setIsSlotModalOpen(true)}
@@ -210,25 +316,62 @@ const DoctorAppointmentDashboard = () => {
                         <h2>Manage Free Slots</h2>
                     </div>
                     <div className="card-content">
-                        <div className="card-stats">
-                            <p className="stat-label">Available Slots</p>
-                            <p className="stat-number">{freeSlots.length}</p>
-                        </div>
-
-                        {/* Add margin or padding between Available Slots and Parallel Available Slots */}
-                        <div style={{ marginBottom: '20px' }}></div> {/* Adds space between sections */}
-
-                        {/* Parallel Free Slot Sections */}
-                        <div className="free-slot-sections">
-                            {freeSlots.map((slot) => (
-                                <div key={slot.id} className="slot-card">
-                                    <p>{slot.date}</p>
-                                    <p>{slot.startTime} - {slot.endTime}</p>
+                        {/* Categorized Slots */}
+                        <div>
+                            {/* Today's Slots */}
+                            {categorizedSlots.today.length > 0 && (
+                                <div>
+                                    <h3>Today's Slots</h3>
+                                    <div>
+                                        {categorizedSlots.today.map(slot => (
+                                            <div key={slot._id} className="slot-card">
+                                                <p>
+                                                    {new Date(slot.date).toLocaleDateString('en-GB')}
+                                                    ({slot.startTime} - {slot.endTime})
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
-                            ))}
+                            )}
+
+                            {/* Tomorrow's Slots */}
+                            {categorizedSlots.tomorrow.length > 0 && (
+                                <div>
+                                    <h3>Tomorrow's Slots</h3>
+                                    <div>
+                                        {categorizedSlots.tomorrow.map(slot => (
+                                            <div key={slot._id} className="slot-card">
+                                                <p>
+                                                    {new Date(slot.date).toLocaleDateString('en-GB')}
+                                                    ({slot.startTime} - {slot.endTime})
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Future Slots */}
+                            {categorizedSlots.future.length > 0 && (
+                                <div>
+                                    <h3>Future Slots</h3>
+                                    <div>
+                                        {categorizedSlots.future.map(slot => (
+                                            <div key={slot._id} className="slot-card">
+                                                <p>
+                                                    {new Date(slot.date).toLocaleDateString('en-GB')}
+                                                    ({slot.startTime} - {slot.endTime})
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
+
 
 
                 {/* Appointments Modal */}
@@ -323,6 +466,7 @@ const DoctorAppointmentDashboard = () => {
                                     value={newSlot.date}
                                     onChange={(e) => setNewSlot({ ...newSlot, date: e.target.value })}
                                 />
+                                {errors.date && <p className="error-message">{errors.date}</p>}
                             </div>
                             <div className="form-group">
                                 <label htmlFor="start-time">Start Time</label>
@@ -332,6 +476,7 @@ const DoctorAppointmentDashboard = () => {
                                     value={newSlot.startTime}
                                     onChange={(e) => setNewSlot({ ...newSlot, startTime: e.target.value })}
                                 />
+                                {errors.startTime && <p className="error-message">{errors.startTime}</p>}
                             </div>
                             <div className="form-group">
                                 <label htmlFor="end-time">End Time</label>
@@ -341,6 +486,7 @@ const DoctorAppointmentDashboard = () => {
                                     value={newSlot.endTime}
                                     onChange={(e) => setNewSlot({ ...newSlot, endTime: e.target.value })}
                                 />
+                                {errors.endTime && <p className="error-message">{errors.endTime}</p>}
                             </div>
                             <button
                                 className="save-button"

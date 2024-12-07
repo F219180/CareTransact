@@ -8,7 +8,7 @@ import { Toaster, toast } from "sonner";
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import axios from 'axios';
 import { db } from "../firebase"; // Adjust the path to your firebase.js
-import { doc, getDoc , setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 function Signup() {
     const [email, setEmail] = useState('');
@@ -35,7 +35,7 @@ function Signup() {
                 try {
                     // Manually reload user to get the latest verification status
                     await reload(user);
-    
+
                     // Check if verification email is sent
                     if (!user.emailVerified) {
                         if (!emailVerificationSent) {
@@ -45,27 +45,27 @@ function Signup() {
                             });
                             setEmailVerificationSent(true);
                         }
-                    } 
+                    }
                 } catch (error) {
                     console.error("Error checking verification status:", error);
                 }
             }
         });
-    
+
         // Periodic check for email verification and Firestore email existence
         const verificationCheckInterval = () => {
             const interval = setInterval(async () => {
                 const user = auth.currentUser;
-    
+
                 if (user && user.email === email) {
                     try {
                         await reload(user);
-    
+
                         // Only show the success toast if the email is verified and exists in Firestore
                         if (user.emailVerified && email !== "") {
                             const userRef = doc(db, "users", user.uid); // Use uid to check in the users collection
                             const userDoc = await getDoc(userRef);
-    
+
                             if (userDoc.exists()) {
                                 if (!emailVerifiedForCurrentSession) {
                                     setEmailVerifiedForCurrentSession(true); // Prevent repeated toasts
@@ -82,21 +82,21 @@ function Signup() {
                     }
                 }
             }, 3000); // Check every 3 seconds
-    
+
             return interval;
         };
-    
+
         // Start the verification check interval
         const interval = verificationCheckInterval();
-    
+
         // Cleanup subscriptions and interval on component unmount
         return () => {
             unsubscribe();
             clearInterval(interval);
         };
     }, [email, emailVerifiedForCurrentSession, emailVerificationSent]);
-    
-    
+
+
     const validatePassword = (password, confirmPassword) => {
         const lengthValid = password.length >= 6;
         const numberValid = /\d/.test(password);
@@ -130,7 +130,7 @@ function Signup() {
                 createdAt: new Date(),
                 uid
             });
-            const response = await axios.post('http://localhost:5001/api/auth/patients', { email });
+            const response = await axios.post('http://localhost:5000/api/auth/patients', { email });
             if (response.status === 201) {
                 console.log("Email successfully saved to the database.");
             }
@@ -138,25 +138,25 @@ function Signup() {
             console.error("Error saving email to Firestore or database:", error);
         }
     };
-    
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-    
+
         try {
             // Create the user with email and password
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
-    
+
             // Send the verification email
             await sendEmailVerification(user);
-    
+
             toast.info("Verification email sent. Please check your inbox.", {
                 style: { backgroundColor: "#2196f3", color: "#fff" },
             });
-    
+
             // Save email, password, and uid to Firestore (users collection)
             await handleSaveEmailToDatabase(email, password, user.uid);
-    
+
         } catch (error) {
             console.error("Error during signup:", error);
             toast.error(`Signup failed: ${error.message}`, {
@@ -164,7 +164,7 @@ function Signup() {
             });
         }
     };
-    
+
 
     const handlePasswordChange = (e) => {
         const newPassword = e.target.value;

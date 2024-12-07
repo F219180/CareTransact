@@ -28,27 +28,24 @@ function Login() {
         e.preventDefault();
 
         try {
-            // Sign in the user
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
-            // Check if the email is verified
             if (user.emailVerified) {
-                // Call backend to check user type
-                const response = await axios.post('http://localhost:5001/api/auth/check-user-type', { email });
+                const response = await axios.post('http://localhost:5000/api/auth/check-user-type', { email });
                 const userType = response.data.userType;
 
                 toast.success("Successfully logged in!", {
                     style: { backgroundColor: "#4caf50", color: "#fff" }
                 });
 
-                // Set email in AuthContext
+                // Store email in AuthContext
                 setEmailInAuth(email);
 
-                // Redirect based on user type
+                // Navigate based on user type
                 setTimeout(() => {
                     navigate(userType === 'doctor' ? '/Doctor' : '/profilePatient');
-                }, 3000); // Delay for toast notification
+                }, 3000);
             } else {
                 toast.error("Please verify your email before logging in.", {
                     style: { backgroundColor: "#f44336", color: "#fff" }
@@ -60,6 +57,8 @@ function Login() {
             });
         }
     };
+
+
 
 
     return (
@@ -96,7 +95,7 @@ function Login() {
                                 onClick={togglePasswordVisibility}
                                 onMouseDown={(e) => e.preventDefault()}
                             >
-                                {showPassword ? <FaEye />:<FaEyeSlash />}
+                                {showPassword ? <FaEye /> : <FaEyeSlash />}
                             </span>
                         </div>
                         <div className="login-footer">

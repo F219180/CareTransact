@@ -4,10 +4,12 @@ const mongoose = require('mongoose');
 const doctorSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true },
     name: { type: String, required: true },
-    specialization: { type: String, default: "N/A" }, // Added specialization field
+    specialization: { type: String, default: "N/A" },
     education: { type: String, default: "N/A" },
     services: { type: [String], default: [] },
-    profilePicture: { type: String, default: "N/A" }, // URL for picture storage
+    profilePicture: { type: String, default: "N/A" },
+    gender: { type: String, enum: ["Male", "Female", "Other"], default: "Other" }, // Added gender
+    consultationFee: { type: Number, default: 0 } // Added consultation fee
 });
 
 // Patient Schema (Profile information specific to patients)
@@ -29,14 +31,19 @@ const patientSchema = new mongoose.Schema({
 // Appointment Schema (Details about appointments)
 const appointmentSchema = new mongoose.Schema({
     doctorEmail: { type: String, required: true },
-    doctorName: { type: String, required: true },
-    specialization: { type: String, required: true },
-    patientEmail: { type: String },
-    patientName: { type: String },
+    doctorName: { type: String },
+    specialization: { type: String },
+    patientEmail: { type: String }, // Ensure patient email is mandatory
+    patientName: { type: String }, // Ensure patient name is mandatory
     date: { type: Date, required: true },
-    time: { type: String, required: true }, // Format: HH:mm
-    duration: { type: Number, required: true }, // In minutes
-    status: { type: String, default: 'Free Slot' },
+    startTime: { type: String, required: true }, // Format: HH:mm (start time of appointment)
+    endTime: { type: String, required: true }, // Format: HH:mm (end time of appointment)
+    status: {
+        type: String,
+        enum: ['Pending', 'Available', 'Confirmed', 'Completed', 'Cancelled'],
+        default: 'Pending'
+    }, // Enum for appointment status// Added location field
+    consultationFee: { type: Number, default: 0 }, // Added consultation fee field
 });
 
 // Exporting Models

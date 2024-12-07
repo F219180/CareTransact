@@ -1,9 +1,22 @@
-import { createContext, useState, useContext } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-    const [email, setEmail] = useState(null); // Store logged-in user's email
+    const [email, setEmail] = useState(() => {
+        // Retrieve email from localStorage if available
+        return localStorage.getItem('email') || null;
+    });
+
+    // Store email in localStorage whenever it changes
+    useEffect(() => {
+        if (email) {
+            localStorage.setItem('email', email);
+        } else {
+            localStorage.removeItem('email');
+        }
+    }, [email]);
+
     return (
         <AuthContext.Provider value={{ email, setEmail }}>
             {children}

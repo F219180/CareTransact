@@ -15,7 +15,7 @@
 }
 
 .calendar-section {
-    background-color:#e4f0f8;
+    background-color: #e4f0f8;
     border-radius: 16px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
     padding: 1.5rem;
@@ -466,6 +466,7 @@ select {
     left: -7px;
     /* Move the card slightly to the left */
 }
+
 .custom-toolbar {
     border-radius: 8px;
 }
@@ -475,14 +476,26 @@ select {
     background: transparent;
     border: none;
     cursor: pointer;
-    color: #817878; /* Dark color for the arrows */
+    color: #817878;
+    /* Dark color for the arrows */
     padding: 10px;
-    border-radius: 5px; /* Optional: add rounded corners */
-    transition: all 0.3s ease; /* Smooth transition for hover effect */
+    border-radius: 5px;
+    /* Optional: add rounded corners */
+    transition: all 0.3s ease;
+    /* Smooth transition for hover effect */
 }
 
 /* Hover effect for the buttons */
 .previous-button:hover,
 .next-button:hover {
-    color: rgb(0, 0, 0); /* Change icon color to white on hover */
+    color: rgb(0, 0, 0);
+    /* Change icon color to white on hover */
+}
+
+
+.error-message {
+    color: #ff0000;
+    /* Red color */
+    font-size: 12px;
+    margin-top: 5px;
 }

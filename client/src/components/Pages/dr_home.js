@@ -13,22 +13,21 @@ const DoctorProfile = ({ isSidebarVisible, toggleSidebar }) => {
         education: "N/A",
         services: [],
         profilePicture: "N/A",
+        gender: "Other", // Added gender
+        consultationFee: 0 // Added consultation fee
     });
+
     const [uploadedImage, setUploadedImage] = useState(null);
 
     const { email } = useAuth();
 
     useEffect(() => {
         const fetchDoctorDetails = async () => {
+            if (!email) return; // Prevent fetching if email is missing
             try {
-                const response = await axios.get("http://localhost:5000/api/auth/doctor-details", {
-                    params: { email },
-                });
+                const response = await axios.get("http://localhost:5000/api/auth/doctor-details", { params: { email } });
                 const services = response.data.services === "N/A" ? [] : response.data.services;
-                setProfileData({
-                    ...response.data,
-                    services,
-                });
+                setProfileData({ ...response.data, services });
             } catch (error) {
                 console.error("Error fetching doctor details:", error);
             }
@@ -36,6 +35,7 @@ const DoctorProfile = ({ isSidebarVisible, toggleSidebar }) => {
 
         fetchDoctorDetails();
     }, [email]);
+
 
     const toggleEditMode = () => {
         setIsEditMode(!isEditMode);
@@ -65,6 +65,18 @@ const DoctorProfile = ({ isSidebarVisible, toggleSidebar }) => {
             services: newServices,
         });
     };
+
+    const handleCconsultationChange = (e) => {
+        const { name, value } = e.target;
+        if (name === "consultationFee" && value < 0) {
+            return; // Prevent setting negative values
+        }
+        setProfileData({
+            ...profileData,
+            [name]: value,
+        });
+    };
+
 
     const addService = () => {
         setProfileData({
@@ -162,6 +174,38 @@ const DoctorProfile = ({ isSidebarVisible, toggleSidebar }) => {
                                 />
                             ) : (
                                 profileData.education
+                            )}
+                        </p>
+                        <h4>Gender</h4>
+                        <p>
+                            {isEditMode ? (
+                                <select
+                                    name="gender"
+                                    value={profileData.gender}
+                                    onChange={handleInputChange}
+                                    className="profile-input"
+                                >
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            ) : (
+                                profileData.gender
+                            )}
+                        </p>
+                        <h4>Consultation Fee</h4>
+                        <p>
+                            {isEditMode ? (
+                                <input
+                                    type="number"
+                                    name="consultationFee"
+                                    value={profileData.consultationFee}
+                                    onChange={handleInputChange}
+                                    min="0" // Prevent negative input
+                                    className="profile-input"
+                                />
+                            ) : (
+                                `Rs. ${profileData.consultationFee}`
                             )}
                         </p>
                         <h4>Services</h4>
