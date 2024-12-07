@@ -62,7 +62,7 @@ const App = () => {
           )}
 
           <Routes>
-            <Route index element={<AppointmentBookingPatient />} />
+            <Route index element={<LP />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -73,7 +73,7 @@ const App = () => {
             <Route path="/profilePatient" element={<ProfilePatient isSidebarVisible={isSidebarVisible} />} />
             <Route path="/Doctor_appointment" element={<AppointmentManagementCard isSidebarVisible={isSidebarVisible} />} />
             <Route path="/appointment_BookingPatient" element={<AppointmentBookingPatient isSidebarVisible={isSidebarVisible} />} />
-  
+
           </Routes>
         </div>
       </LocalizationProvider>
