@@ -1,13 +1,21 @@
 /* Advanced Dashboard Styles */
 .doctor-dashboard-advanced {
     min-height: 100vh;
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    background-image: url("../../assets/images/patinet_bg.avif");
+    background-size: cover;
+    /* Ensure the image covers the entire area */
+    background-repeat: no-repeat;
+    /* Prevent repeating the image */
+    background-position: center center;
+    /* Center the image */
+
+
     padding: 2rem;
     font-family: 'Inter', sans-serif;
 }
 
 .calendar-section {
-    background-color: white;
+    background-color:#e4f0f8;
     border-radius: 16px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
     padding: 1.5rem;
@@ -22,7 +30,7 @@
 }
 
 .dashboard-card {
-    background-color: white;
+    background-color: #e4f0f8;
     border-radius: 16px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
     overflow: hidden;
@@ -40,7 +48,7 @@
     display: flex;
     align-items: center;
     padding: 1rem;
-    background-color: #f8f9fa;
+    background-color: #e4f0f8;
 }
 
 .card-header .card-icon {
@@ -304,15 +312,6 @@ select {
     }
 }
 
-/* Sidebar */
-.sidebar-visible {
-    padding-left: 270px;
-}
-
-.sidebar-hidden {
-    padding-left: 0;
-}
-
 /* Additional Calendar Styling */
 .custom-calendar-event {
     font-size: 0.7rem;
@@ -380,4 +379,110 @@ select {
     border-radius: 50%;
     margin: 0 auto;
     display: inline-block;
+}
+
+/* Main container, sets flex direction for horizontal layout */
+.doctor-dashboard-advanced {
+    display: flex;
+    flex-direction: column;
+    /* Stack elements vertically */
+    transition: all 0.3s ease-in-out;
+}
+
+/* Sidebar visibility styles */
+.sidebar-visible {
+    transition: margin-left 0.3s ease-in-out;
+}
+
+.sidebar-hidden {
+    transition: margin-left 0.3s ease-in-out;
+}
+
+/* Calendar Section */
+.calendar-section {
+    width: calc(100% - 270px);
+    /* Default width when sidebar is visible */
+    transition: all 0.3s ease-in-out;
+    margin-left: 150px;
+    /* Calendar pushed to the right */
+}
+
+/* When sidebar is hidden */
+.doctor-dashboard-advanced.sidebar-hidden .calendar-section {
+    width: 100%;
+    /* Calendar takes full width when sidebar is hidden */
+    margin-left: 0;
+    /* No margin left when sidebar is hidden */
+}
+
+/* When sidebar is visible */
+.doctor-dashboard-advanced.sidebar-visible .calendar-section {
+    width: calc(100% - 270px);
+    /* Calendar shrinks more when sidebar is visible */
+    margin-left: 260px;
+    /* Calendar pushed to the right */
+}
+
+/* Dashboard Grid (cards section) */
+.dashboard-grid-advanced {
+    display: flex;
+    flex-wrap: wrap;
+    /* Allow cards to wrap in case of overflow */
+    gap: 20px;
+    /* Add space between cards */
+    margin-top: 20px;
+    /* Space between calendar and cards */
+}
+
+/* Card styles */
+.dashboard-card {
+    flex: 1 1 calc(50% - 20px);
+    /* Make cards take up 50% of the width */
+    box-sizing: border-box;
+    max-width: 500px;
+    /* Prevent cards from shrinking too small */
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    position: relative;
+    left: 20%;
+}
+
+.appointments-card {
+    background-color: #e0f7fa;
+}
+
+.slots-card {
+    background-color: #e8f5e9;
+}
+
+.doctor-dashboard-advanced.sidebar-hidden .dashboard-card {
+    flex: 1 1 calc(55% - 20px);
+    /* Increased card width */
+    max-width: 600px;
+    /* Increased max-width */
+    position: relative;
+    left: -7px;
+    /* Move the card slightly to the left */
+}
+.custom-toolbar {
+    border-radius: 8px;
+}
+
+.previous-button,
+.next-button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #817878; /* Dark color for the arrows */
+    padding: 10px;
+    border-radius: 5px; /* Optional: add rounded corners */
+    transition: all 0.3s ease; /* Smooth transition for hover effect */
+}
+
+/* Hover effect for the buttons */
+.previous-button:hover,
+.next-button:hover {
+    color: rgb(0, 0, 0); /* Change icon color to white on hover */
 }
