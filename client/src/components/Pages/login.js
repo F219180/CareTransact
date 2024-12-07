@@ -35,7 +35,7 @@ function Login() {
             // Check if the email is verified
             if (user.emailVerified) {
                 // Call backend to check user type
-                const response = await axios.post('http://localhost:5000/api/auth/check-user-type', { email });
+                const response = await axios.post('http://localhost:5001/api/auth/check-user-type', { email });
                 const userType = response.data.userType;
 
                 toast.success("Successfully logged in!", {

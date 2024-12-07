@@ -3,6 +3,8 @@ import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import './Doctor_appointment.css';
+import Sidebardoctor from "./sidebardoctor";
+import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import {
     FaCalendarCheck,
     FaClock,
@@ -19,11 +21,14 @@ const DoctorAppointmentDashboard = () => {
     const [futureAppointments, setFutureAppointments] = useState([
         { id: 1, patientName: 'John Doe', date: '2024-02-15', time: '10:00 AM', reason: 'Routine Checkup' },
         { id: 2, patientName: 'Jane Smith', date: '2024-02-16', time: '02:30 PM', reason: 'Follow-up Consultation' }
+
     ]);
 
     const [pendingAppointments, setPendingAppointments] = useState([
         { id: 3, patientName: 'Alice Johnson', date: '2024-02-14', time: '11:00 AM', reason: 'Initial Consultation' },
-        { id: 4, patientName: 'Bob Williams', date: '2024-02-17', time: '03:45 PM', reason: 'Specialist Referral' }
+        { id: 4, patientName: 'Bob Williams', date: '2024-02-17', time: '03:45 PM', reason: 'Specialist Referral' },
+        { id: 1, patientName: 'kamla safdar', date: '2024-02-17', time: '10:00 AM', reason: 'Routine Checkup' },
+        { id: 2, patientName: 'Almas Aina', date: '2024-02-18', time: '02:30 PM', reason: 'Follow-up Consultation' }
     ]);
 
     // Free slot state
@@ -46,35 +51,59 @@ const DoctorAppointmentDashboard = () => {
         startTime: '',
         endTime: ''
     });
+    const [isSidebarVisible, setIsSidebarVisible] = useState(true);
 
-    // Convert appointments to calendar events
+    const toggleSidebar = () => {
+        setIsSidebarVisible(prevState => !prevState); // Use previous state
+    };
     useEffect(() => {
         const appointmentEvents = futureAppointments.map(appt => ({
             title: `${appt.patientName} - ${appt.reason}`,
-            start: new Date(appt.date + ' ' + appt.time),
-            end: moment(new Date(appt.date + ' ' + appt.time)).add(1, 'hour').toDate(),
+            start: new Date(`${appt.date} ${appt.time}`),
+            end: moment(new Date(`${appt.date} ${appt.time}`)).add(1, 'hour').toDate(),
+            type: 'appointment'
         }));
 
-        setCalendarEvents(appointmentEvents);
+        setCalendarEvents(prevEvents => {
+            const filteredEvents = prevEvents.filter(event => event.type !== 'appointment');
+            return [...filteredEvents, ...appointmentEvents];
+        });
     }, [futureAppointments]);
-
+    // Convert appointments to calendar events
     // Free slots on the calendar
     useEffect(() => {
         const freeSlotEvents = freeSlots.map(slot => ({
-            title: 'Available Slot',
+            title: 'Appointment',
             start: new Date(slot.date + ' ' + slot.startTime),
             end: moment(new Date(slot.date + ' ' + slot.startTime)).add(1, 'hour').toDate(),
-            allDay: false, // It's a time slot, not an all-day event
+            type: 'freeSlot'
         }));
 
-        setCalendarEvents(prevEvents => [...prevEvents, ...freeSlotEvents]);
+        setCalendarEvents(prevEvents => {
+            const filteredEvents = prevEvents.filter(event => event.type !== 'freeSlot');
+            return [...filteredEvents, ...freeSlotEvents];
+        });
     }, [freeSlots]);
 
     // Appointment management handlers
     const handleAppointmentAccept = (appointment) => {
         setPendingAppointments(pendingAppointments.filter(appt => appt.id !== appointment.id));
-        setFutureAppointments([...futureAppointments, appointment]);
+
+        // Add accepted appointment to future appointments
+        const acceptedAppointment = { ...appointment, isAccepted: true };
+        setFutureAppointments(prevAppointments => [...prevAppointments, acceptedAppointment]);
+
+        // Add the accepted appointment to the calendar
+        const newCalendarEvent = {
+            title: `${appointment.patientName} - ${appointment.reason}`,
+            start: new Date(`${appointment.date} ${appointment.time}`),
+            end: moment(new Date(`${appointment.date} ${appointment.time}`)).add(1, 'hour').toDate(),
+            type: 'appointment'
+        };
+        setCalendarEvents(prevEvents => [...prevEvents, newCalendarEvent]);
     };
+
+
 
     const handleAppointmentReject = (appointment) => {
         setPendingAppointments(pendingAppointments.filter(appt => appt.id !== appointment.id));
@@ -85,7 +114,7 @@ const DoctorAppointmentDashboard = () => {
             alert('End time must be after start time.');
             return;
         }
-    
+
         setFreeSlots([
             ...freeSlots,
             {
@@ -98,7 +127,7 @@ const DoctorAppointmentDashboard = () => {
         setIsSlotModalOpen(false);
         setNewSlot({ date: '', startTime: '', endTime: '' });
     };
-    
+
     // Calendar navigation handlers
     const handlePreviousMonth = () => {
         const newDate = moment(currentDate).subtract(1, 'month').toDate();
@@ -113,9 +142,10 @@ const DoctorAppointmentDashboard = () => {
     const monthYear = moment(currentDate).format('MMMM YYYY'); // Get the month and year
 
     return (
-        <div className="doctor-dashboard-advanced">
+        <div className={`doctor-dashboard-advanced ${isSidebarVisible ? 'sidebar-visible' : 'sidebar-hidden'}`}>
+            <Sidebardoctor toggleSidebar={toggleSidebar} isSidebarVisible={isSidebarVisible} />
             {/* Calendar Section */}
-            <div className="calendar-section">
+            <div className='calendar-section'>
                 <div className="month-year">
                     <h2>{monthYear}</h2>
                 </div>
@@ -131,8 +161,12 @@ const DoctorAppointmentDashboard = () => {
                     components={{
                         toolbar: () => (
                             <div className="custom-toolbar">
-                                <button onClick={handlePreviousMonth} className="previous-button">Previous</button>
-                                <button onClick={handleNextMonth} className="next-button">Next</button>
+                                <button onClick={handlePreviousMonth} className="previous-button">
+                                    <FaChevronLeft size={20} />
+                                </button>
+                                <button onClick={handleNextMonth} className="next-button">
+                                    <FaChevronRight size={20} />
+                                </button>
                             </div>
                         ),
                     }}
@@ -147,7 +181,8 @@ const DoctorAppointmentDashboard = () => {
             </div>
 
             {/* Dashboard Cards */}
-            <div className="dashboard-grid-advanced">
+
+            <div className=' dashboard-grid-advanced'>
                 {/* Appointments Card */}
                 <div
                     className="dashboard-card appointments-card"

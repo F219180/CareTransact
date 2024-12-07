@@ -6,10 +6,11 @@
     /* Matches profile card background */
     color: #002d5b;
     /* Matches text color */
-    position: absolute;
+    position: fixed;
     /* Positioned relative to parent */
     left: 0;
     top: 0;
+    overflow-y: auto;
     transition: transform 0.3s ease;
     transform: translateX(-100%);
     /* Hidden by default */
@@ -19,6 +20,7 @@
     flex-direction: column;
     align-items: center;
     /* Center content horizontally */
+    padding-top: 10px;
 }
 
 .sidebar.visible {
@@ -28,7 +30,7 @@
 
 .sidebar-logo {
     text-align: center;
-    margin: 20px 0;
+    margin: -10px 0;
 }
 
 .sidebar-logo .logo {
@@ -37,12 +39,11 @@
 
 .sidebar-menu {
     list-style: none;
-    padding: 0;
-    margin: 0;
     width: 100%;
     /* Ensure links take the full width */
     text-align: center;
     /* Center align text */
+    margin-top: 10px;
 }
 
 .sidebar-menu li {

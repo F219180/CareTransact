@@ -27,7 +27,7 @@ const App = () => {
   // Determine which sidebar to show based on route
   const isDoctorPage = location.pathname === "/Doctor";
   const isPatientPage = location.pathname === "/profilePatient";
-  const isAppointmentPage = location.pathname === "/Doctor_appointment";
+  const isAppointmentPage = location.pathname === "/appointmentslots";
 
   return (
     <AuthProvider>
@@ -54,7 +54,7 @@ const App = () => {
           )}
 
           <Routes>
-            <Route index element={<AppointmentManagementCard />} />
+            <Route index element={<LP />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -63,7 +63,7 @@ const App = () => {
             <Route path="/Footer" element={<Footer />} />
             <Route path="/Doctor" element={<DrHome isSidebarVisible={isSidebarVisible} />} />
             <Route path="/profilePatient" element={<ProfilePatient isSidebarVisible={isSidebarVisible} />} />
-            <Route path="/Doctor_appointment" element={<AppointmentManagementCard isSidebarVisible={isSidebarVisible} />} />
+            <Route path="/appointmentslots" element={<AppointmentManagementCard isSidebarVisible={isSidebarVisible} />} />
             
           </Routes>
         </div>

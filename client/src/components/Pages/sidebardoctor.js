@@ -20,7 +20,7 @@ const Sidebardoctor = ({ isSidebarVisible, toggleSidebar }) => {
                 </div>
                 <ul className="sidebar-menu">
                     <li><a href="/Doctor">Home</a></li>
-                    <li><a href="/reports">Appointment Slots</a></li>
+                    <li><a href="/appointmentslots">Appointment Slots</a></li>
                     <li><a href="/prescriptions">Prescription</a></li>
                     <li><a href="/lab-results">Lab Results</a></li>
                     <li><a href="/reports">Reports</a></li>

@@ -130,7 +130,7 @@ function Signup() {
                 createdAt: new Date(),
                 uid
             });
-            const response = await axios.post('http://localhost:5000/api/auth/patients', { email });
+            const response = await axios.post('http://localhost:5001/api/auth/patients', { email });
             if (response.status === 201) {
                 console.log("Email successfully saved to the database.");
             }
