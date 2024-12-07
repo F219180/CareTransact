@@ -3,6 +3,7 @@ import "./sidebarPatient.css";
 import NavIcon from "../../assets/images/nav_icon.png";
 import Logo from "../../assets/images/CT_logo.png";
 import LogoutIcon from "../../assets/images/logout.png";
+import { Link } from "react-router-dom"; // Import Link for navigation
 
 const SidebarPatient = ({ isSidebarVisible, toggleSidebar }) => {
     return (
@@ -19,15 +20,15 @@ const SidebarPatient = ({ isSidebarVisible, toggleSidebar }) => {
                     <h4>CareTransact</h4>
                 </div>
                 <ul className="sidebar-menu">
-                    <li><a href="/profilePatient">Home</a></li>
-                    <li><a href="/appointments">Appointment Booking</a></li>
-                    <li><a href="/prescriptions">Prescription</a></li>
-                    <li><a href="/lab-results">Lab Results</a></li>
-                    <li><a href="/reports">Reports</a></li>
+                    <li><Link to="/profilePatient">Home</Link></li>
+                    <li><Link to="/appointment_BookingPatient">Appointment Booking</Link></li>
+                    <li><Link to="/prescriptions">Prescription</Link></li>
+                    <li><Link to="/lab-results">Lab Results</Link></li>
+                    <li><Link to="/reports">Reports</Link></li>
                     <li className="logout">
-                        <a href="/landingpage">
+                        <Link to="/landingpage">
                             <img src={LogoutIcon} alt="Logout" className="logout-icon" /> <b>Logout</b>
-                        </a>
+                        </Link>
                     </li>
                 </ul>
             </div>
