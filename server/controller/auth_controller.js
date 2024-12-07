@@ -58,8 +58,9 @@ const getDoctorDetails = async (req, res) => {
             education: doctor.education || '',
             services: doctor.services || [],
             profilePicture: doctor.profilePicture || null,
-            gender: doctor.gender || 'Other', // Include gender
-            consultationFee: doctor.consultationFee || 0 // Include consultation fee
+            gender: doctor.gender || 'Male',
+            consultationFee: doctor.consultationFee || 0,
+            yearOfExperience: doctor.yearOfExperience || 0, // Added yearOfExperience
         });
     } catch (error) {
         console.error('Error fetching doctor details:', error);
@@ -97,6 +98,7 @@ const updateDoctor = async (req, res) => {
     try {
         const { email, ...updatedFields } = req.body;
         const updatedDoctor = await Doctor.findOneAndUpdate({ email }, updatedFields, { new: true, upsert: true });
+
         if (!updatedDoctor) {
             return res.status(404).json({ message: 'Doctor not found' });
         }
@@ -215,6 +217,7 @@ const getCategorizedSlots = async (req, res) => {
     }
 };
 
+//Patient Appointment selection
 
 
 
