@@ -8,9 +8,11 @@ const doctorSchema = new mongoose.Schema({
     education: { type: String, default: "N/A" },
     services: { type: [String], default: [] },
     profilePicture: { type: String, default: "N/A" },
-    gender: { type: String, enum: ["Male", "Female", "Other"], default: "Other" }, // Added gender
-    consultationFee: { type: Number, default: 0 } // Added consultation fee
+    gender: { type: String, enum: ["Male", "Female", "Other"], default: "Other" },
+    consultationFee: { type: Number, default: 0 },
+    yearOfExperience: { type: Number, default: 0 }, // Added yearOfExperience
 });
+
 
 // Patient Schema (Profile information specific to patients)
 const patientSchema = new mongoose.Schema({

@@ -50,7 +50,6 @@ const AppointmentBookingPatient = () => {
             name: "Dr. Emily Johnson",
             specialty: "Cardiology",
             experience: "15 years",
-            rating: 4.8,
             consultationFee: 500,
             image: "https://randomuser.me/api/portraits/women/1.jpg",
             availableSlots: [
@@ -63,7 +62,6 @@ const AppointmentBookingPatient = () => {
             name: "Dr. Michael Chen",
             specialty: "Orthopedics",
             experience: "12 years",
-            rating: 4.6,
             consultationFee: 450,
             image: "https://randomuser.me/api/portraits/men/1.jpg",
             availableSlots: [
@@ -140,101 +138,100 @@ const AppointmentBookingPatient = () => {
                     </div>
                 );
 
-                case "bookAppointment":
-                    const filteredDoctors = doctors.filter((doctor) => {
-                      const matchesName = doctor.name.toLowerCase().includes(searchQuery.toLowerCase());
-                      const matchesGender = selectedGender ? doctor.gender === selectedGender : true;
-                      const matchesSpecialization = selectedSpecialization
+            case "bookAppointment":
+                const filteredDoctors = doctors.filter((doctor) => {
+                    const matchesName = doctor.name.toLowerCase().includes(searchQuery.toLowerCase());
+                    const matchesGender = selectedGender ? doctor.gender === selectedGender : true;
+                    const matchesSpecialization = selectedSpecialization
                         ? doctor.specialty.toLowerCase() === selectedSpecialization.toLowerCase()
                         : true;
-                  
-                      return matchesName && matchesGender && matchesSpecialization;
-                    });
-                  
-                    return (
-                      <div className="card-container">
+
+                    return matchesName && matchesGender && matchesSpecialization;
+                });
+
+                return (
+                    <div className="card-container">
                         <div className="card book-appointment-card">
-                          <div className="card-header">
-                            <h2>Book New Appointment</h2>
-                          </div>
-                          <div className="card-body">
-                            {/* Search and Filter Section */}
-                            <div className="filter-container">
-                              <input
-                                type="text"
-                                placeholder="Search by name..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="filter-input"
-                              />
-                              <select
-                                value={selectedGender}
-                                onChange={(e) => setSelectedGender(e.target.value)}
-                                className="filter-select"
-                              >
-                                <option value="">All Genders</option>
-                                <option value="male">Male</option>
-                                <option value="female">Female</option>
-                              </select>
-                              <select
-                                value={selectedSpecialization}
-                                onChange={(e) => setSelectedSpecialization(e.target.value)}
-                                className="filter-select"
-                              >
-                                <option value="">All Specializations</option>
-                                <option value="Cardiology">Cardiology</option>
-                                <option value="Orthopedics">Orthopedics</option>
-                                {/* Add more specializations as needed */}
-                              </select>
+                            <div className="card-header">
+                                <h2>Book New Appointment</h2>
                             </div>
-                  
-                            {/* Doctors Grid */}
-                            <div className="doctors-grid">
-                              {filteredDoctors.map((doctor) => (
-                                <div
-                                  key={doctor.id}
-                                  className={`doctor-card ${
-                                    selectedDoctor?.id === doctor.id ? "selected" : ""
-                                  }`}
-                                  onClick={() => {
-                                    setSelectedDoctor(doctor);
-                                    setSelectedDate(null);
-                                    setSelectedSlot(null);
-                                  }}
-                                >
-                                  <div className="doctor-header">
-                                    <img
-                                      src={doctor.image}
-                                      alt={doctor.name}
-                                      className="doctor-image"
+                            <div className="card-body">
+                                {/* Search and Filter Section */}
+                                <div className="filter-container">
+                                    <input
+                                        type="text"
+                                        placeholder="Search by name..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="filter-input"
                                     />
-                                    <div className="doctor-info">
-                                      <h3>{doctor.name}</h3>
-                                      <p>{doctor.specialty}</p>
-                                    </div>
-                                  </div>
-                                  <div className="doctor-details">
-                                    <div className="detail-item">
-                                      <span>Experience:</span>
-                                      <strong>{doctor.experience}</strong>
-                                    </div>
-                                    <div className="detail-item">
-                                      <span>Consultation Fee:</span>
-                                      <strong>₹{doctor.consultationFee}</strong>
-                                    </div>
-                                    <div className="detail-item">
-                                      <span>Rating:</span>
-                                      <strong>{doctor.rating}/5</strong>
-                                    </div>
-                                  </div>
+                                    <select
+                                        value={selectedGender}
+                                        onChange={(e) => setSelectedGender(e.target.value)}
+                                        className="filter-select"
+                                    >
+                                        <option value="">All Genders</option>
+                                        <option value="male">Male</option>
+                                        <option value="female">Female</option>
+                                    </select>
+                                    <select
+                                        value={selectedSpecialization}
+                                        onChange={(e) => setSelectedSpecialization(e.target.value)}
+                                        className="filter-select"
+                                    >
+                                        <option value="">All Specializations</option>
+                                        <option value="Cardiology">Cardiology</option>
+                                        <option value="Orthopedics">Orthopedics</option>
+                                        {/* Add more specializations as needed */}
+                                    </select>
                                 </div>
-                              ))}
+
+                                {/* Doctors Grid */}
+                                <div className="doctors-grid">
+                                    {filteredDoctors.map((doctor) => (
+                                        <div
+                                            key={doctor.id}
+                                            className={`doctor-card ${selectedDoctor?.id === doctor.id ? "selected" : ""
+                                                }`}
+                                            onClick={() => {
+                                                setSelectedDoctor(doctor);
+                                                setSelectedDate(null);
+                                                setSelectedSlot(null);
+                                            }}
+                                        >
+                                            <div className="doctor-header">
+                                                <img
+                                                    src={doctor.image}
+                                                    alt={doctor.name}
+                                                    className="doctor-image"
+                                                />
+                                                <div className="doctor-info">
+                                                    <h3>{doctor.name}</h3>
+                                                    <p>{doctor.specialty}</p>
+                                                </div>
+                                            </div>
+                                            <div className="doctor-details">
+                                                <div className="detail-item">
+                                                    <span>Experience:</span>
+                                                    <strong>{doctor.experience}</strong>
+                                                </div>
+                                                <div className="detail-item">
+                                                    <span>Consultation Fee:</span>
+                                                    <strong>₹{doctor.consultationFee}</strong>
+                                                </div>
+                                                <div className="detail-item">
+                                                    <span>Rating:</span>
+                                                    <strong>{doctor.rating}/5</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
-                          </div>
                         </div>
-                      </div>
-                    );
-                  
+                    </div>
+                );
+
 
             default:
                 return (

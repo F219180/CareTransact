@@ -13,8 +13,9 @@ const DoctorProfile = ({ isSidebarVisible, toggleSidebar }) => {
         education: "N/A",
         services: [],
         profilePicture: "N/A",
-        gender: "Other", // Added gender
-        consultationFee: 0 // Added consultation fee
+        gender: "Other",
+        consultationFee: 0,
+        yearOfExperience: 0, // Added yearOfExperience
     });
 
     const [uploadedImage, setUploadedImage] = useState(null);
@@ -193,6 +194,22 @@ const DoctorProfile = ({ isSidebarVisible, toggleSidebar }) => {
                                 profileData.gender
                             )}
                         </p>
+                        <h4>Years of Experience</h4>
+                        <p>
+                            {isEditMode ? (
+                                <input
+                                    type="number"
+                                    name="yearOfExperience"
+                                    value={profileData.yearOfExperience}
+                                    onChange={handleInputChange}
+                                    min="0" // Prevent negative input
+                                    className="profile-input"
+                                />
+                            ) : (
+                                `${profileData.yearOfExperience} years`
+                            )}
+                        </p>
+
                         <h4>Consultation Fee</h4>
                         <p>
                             {isEditMode ? (
