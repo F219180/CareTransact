@@ -26,28 +26,29 @@ const DoctorAppointmentDashboard = () => {
         tomorrow: [],
         future: [],
     });
+    const fetchCategorizedSlots = async () => {
+        try {
+            const response = await axios.get('http://localhost:5000/api/auth/get-categorized-slots', {
+                params: { doctorEmail: email },
+            });
+
+            const slots = response.data;
+            setCategorizedSlots({
+                today: slots.today.sort((a, b) => new Date(a.date) - new Date(b.date)),
+                tomorrow: slots.tomorrow.sort((a, b) => new Date(a.date) - new Date(b.date)),
+                future: slots.future.sort((a, b) => new Date(a.date) - new Date(b.date)),
+            });
+        } catch (error) {
+            console.error("Error fetching categorized slots:", error);
+        }
+    };
     useEffect(() => {
-        const fetchCategorizedSlots = async () => {
-            try {
-                const response = await axios.get('http://localhost:5000/api/auth/get-categorized-slots', {
-                    params: { doctorEmail: email },
-                });
-
-                const slots = response.data;
-                setCategorizedSlots({
-                    today: slots.today.sort((a, b) => new Date(a.date) - new Date(b.date)),
-                    tomorrow: slots.tomorrow.sort((a, b) => new Date(a.date) - new Date(b.date)),
-                    future: slots.future.sort((a, b) => new Date(a.date) - new Date(b.date)),
-                });
-            } catch (error) {
-                console.error("Error fetching categorized slots:", error);
-            }
-        };
-
         if (email) {
             fetchCategorizedSlots();
         }
     }, [email]);
+
+
     const validateSlot = () => {
         const newErrors = {};
         const now = new Date();
@@ -143,7 +144,9 @@ const DoctorAppointmentDashboard = () => {
             });
 
             if (response.status === 201) {
-                alert("Slot saved successfully!");
+
+                // Fetch the updated categorized slots after saving
+                fetchCategorizedSlots();
             } else {
                 alert(`Failed to save the slot. Status code: ${response.status}`);
             }
@@ -155,6 +158,7 @@ const DoctorAppointmentDashboard = () => {
             }
         }
     };
+
 
 
 
@@ -307,6 +311,7 @@ const DoctorAppointmentDashboard = () => {
                 {/* Free Slots Management Card */}
                 {/* Free Slots Management Card */}
                 {/* Free Slots Management Card */}
+                {/* Free Slots Management Card */}
                 <div
                     className="dashboard-card slots-card"
                     onClick={() => setIsSlotModalOpen(true)}
@@ -316,61 +321,68 @@ const DoctorAppointmentDashboard = () => {
                         <h2>Manage Free Slots</h2>
                     </div>
                     <div className="card-content">
-                        {/* Categorized Slots */}
-                        <div>
-                            {/* Today's Slots */}
-                            {categorizedSlots.today.length > 0 && (
-                                <div>
-                                    <h3>Today's Slots</h3>
+                        {/* Check if any slots are available */}
+                        {categorizedSlots.today.length === 0 &&
+                            categorizedSlots.tomorrow.length === 0 &&
+                            categorizedSlots.future.length === 0 ? (
+                            <p className="empty-state">No available slots</p>
+                        ) : (
+                            <div>
+                                {/* Today's Slots */}
+                                {categorizedSlots.today.length > 0 && (
                                     <div>
-                                        {categorizedSlots.today.map(slot => (
-                                            <div key={slot._id} className="slot-card">
-                                                <p>
-                                                    {new Date(slot.date).toLocaleDateString('en-GB')}
-                                                    ({slot.startTime} - {slot.endTime})
-                                                </p>
-                                            </div>
-                                        ))}
+                                        <h3>Today's Slots</h3>
+                                        <div>
+                                            {categorizedSlots.today.map(slot => (
+                                                <div key={slot._id} className="slot-card">
+                                                    <p>
+                                                        {new Date(slot.date).toLocaleDateString('en-GB')}
+                                                        ({slot.startTime} - {slot.endTime})
+                                                    </p>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
-                                </div>
-                            )}
+                                )}
 
-                            {/* Tomorrow's Slots */}
-                            {categorizedSlots.tomorrow.length > 0 && (
-                                <div>
-                                    <h3>Tomorrow's Slots</h3>
+                                {/* Tomorrow's Slots */}
+                                {categorizedSlots.tomorrow.length > 0 && (
                                     <div>
-                                        {categorizedSlots.tomorrow.map(slot => (
-                                            <div key={slot._id} className="slot-card">
-                                                <p>
-                                                    {new Date(slot.date).toLocaleDateString('en-GB')}
-                                                    ({slot.startTime} - {slot.endTime})
-                                                </p>
-                                            </div>
-                                        ))}
+                                        <h3>Tomorrow's Slots</h3>
+                                        <div>
+                                            {categorizedSlots.tomorrow.map(slot => (
+                                                <div key={slot._id} className="slot-card">
+                                                    <p>
+                                                        {new Date(slot.date).toLocaleDateString('en-GB')}
+                                                        ({slot.startTime} - {slot.endTime})
+                                                    </p>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
-                                </div>
-                            )}
+                                )}
 
-                            {/* Future Slots */}
-                            {categorizedSlots.future.length > 0 && (
-                                <div>
-                                    <h3>Future Slots</h3>
+                                {/* Future Slots */}
+                                {categorizedSlots.future.length > 0 && (
                                     <div>
-                                        {categorizedSlots.future.map(slot => (
-                                            <div key={slot._id} className="slot-card">
-                                                <p>
-                                                    {new Date(slot.date).toLocaleDateString('en-GB')}
-                                                    ({slot.startTime} - {slot.endTime})
-                                                </p>
-                                            </div>
-                                        ))}
+                                        <h3>Future Slots</h3>
+                                        <div>
+                                            {categorizedSlots.future.map(slot => (
+                                                <div key={slot._id} className="slot-card">
+                                                    <p>
+                                                        {new Date(slot.date).toLocaleDateString('en-GB')}
+                                                        ({slot.startTime} - {slot.endTime})
+                                                    </p>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
-                                </div>
-                            )}
-                        </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
+
 
 
 
