@@ -9,7 +9,8 @@ import DrHome from "./components/Pages/dr_home";
 import AppointmentManagementCard from "./components/Pages/Doctor_appointment";
 import ProfilePatient from "./components/Pages/profilePatient";
 import SidebarPatient from "./components/Pages/sidebarPatient";
-import SidebarDoctor from "./components/Pages/sidebardoctor"; // Ensure correct import
+import SidebarDoctor from "./components/Pages/sidebardoctor";
+import AppointmentBookingPatient from "./components/Pages/appointment_BookingPatient";
 import { AuthProvider } from './context/AuthContext';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -27,7 +28,8 @@ const App = () => {
   // Determine which sidebar to show based on route
   const isDoctorPage = location.pathname === "/Doctor";
   const isPatientPage = location.pathname === "/profilePatient";
-  const isAppointmentPage = location.pathname === "/appointmentslots";
+  const isAppointmentPage = location.pathname === "/Doctor_appointment";
+  const isAppointmentPagePatient = location.pathname === "/appointment_BookingPatient";
 
   return (
     <AuthProvider>
@@ -46,15 +48,21 @@ const App = () => {
               toggleSidebar={toggleSidebar}
             />
           )}
-           {isAppointmentPage && (
+          {isAppointmentPage && (
             <SidebarDoctor
+              isSidebarVisible={isSidebarVisible}
+              toggleSidebar={toggleSidebar}
+            />
+          )}
+          {isAppointmentPagePatient && (
+            <SidebarPatient
               isSidebarVisible={isSidebarVisible}
               toggleSidebar={toggleSidebar}
             />
           )}
 
           <Routes>
-            <Route index element={<LP />} />
+            <Route index element={<AppointmentBookingPatient />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -63,8 +71,9 @@ const App = () => {
             <Route path="/Footer" element={<Footer />} />
             <Route path="/Doctor" element={<DrHome isSidebarVisible={isSidebarVisible} />} />
             <Route path="/profilePatient" element={<ProfilePatient isSidebarVisible={isSidebarVisible} />} />
-            <Route path="/appointmentslots" element={<AppointmentManagementCard isSidebarVisible={isSidebarVisible} />} />
-            
+            <Route path="/Doctor_appointment" element={<AppointmentManagementCard isSidebarVisible={isSidebarVisible} />} />
+            <Route path="/appointment_BookingPatient" element={<AppointmentBookingPatient isSidebarVisible={isSidebarVisible} />} />
+  
           </Routes>
         </div>
       </LocalizationProvider>

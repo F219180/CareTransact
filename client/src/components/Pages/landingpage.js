@@ -155,7 +155,7 @@ function LP() {
                         >
                             <div className="hero-image-container">
                                 <img
-                                    src="./CTLOGO.jpg"
+                                    src="client/src/assets/images/doctors.webp"
                                     alt="LOGO"
                                     className="img-fluid floating-animation"
                                 />
