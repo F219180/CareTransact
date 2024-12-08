@@ -4,6 +4,7 @@ import axios from "axios";
 import defaultimg from "../../assets/images/image.jpg"
 import SidebarPatient from "./sidebarPatient";
 import { v4 as uuidv4 } from "uuid";
+import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-toastify";
 import {
     Calendar,
@@ -13,25 +14,76 @@ import {
     InfoIcon,
     XCircle
 } from "lucide-react";
+import app from "../firebase";
 let globalAppointments = [];
 
 
 const AppointmentBookingPatient = () => {
+    const { email } = useAuth();
+    const [selectedAppointment, setSelectedAppointment] = useState(null);
+
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedGender, setSelectedGender] = useState("");
     const [selectedSpecialization, setSelectedSpecialization] = useState("");
     const [showPopup, setShowPopup] = useState(false);
+    const [showModal, setShowModal] = useState(false);
 
     const [selectedDoctor, setSelectedDoctor] = useState(null);
     const [selectedDate, setSelectedDate] = useState(null);
     const [selectedSlot, setSelectedSlot] = useState(null);
-    const [selectedAppointment, setSelectedAppointment] = useState(null);
 
     const [isSidebarVisible, setIsSidebarVisible] = useState(true);
     const [activeView, setActiveView] = useState(null);
     const [doctors, setDoctors] = useState([]);
-    const [appointments, setAppointments] = useState([]);
     const [selectedDoctorEmails, setSelectedDoctorEmails] = useState([]);
+    const [appointments, setAppointments] = useState([]);
+
+    useEffect(() => {
+        const storedActiveView = localStorage.getItem("activeView");
+        if (storedActiveView) {
+            setActiveView(storedActiveView);
+            localStorage.removeItem("activeView"); // Clear it after using
+        }
+    }, []);
+
+    useEffect(() => {
+        const fetchFutureAppointments = async () => {
+            try {
+                const response = await axios.get("http://localhost:5000/api/auth/get-future-appointments", {
+                    params: { email },
+                });
+
+                setAppointments(response.data);
+            } catch (error) {
+                console.error("Error fetching future appointments:", error.response?.data || error.message);
+                toast.error("Failed to fetch future appointments.");
+            }
+        };
+
+        if (activeView === "futureAppointments" && email) {
+            fetchFutureAppointments();
+        }
+    }, [activeView, email]);
+
+    useEffect(() => {
+        const fetchFutureAppointments = async () => {
+            try {
+                const response = await axios.get("http://localhost:5000/api/auth/get-future-appointments", {
+                    params: { email }, // Patient email from AuthContext
+                });
+
+                setAppointments(response.data); // Update state with future appointments
+            } catch (error) {
+                console.error("Error fetching future appointments:", error.response?.data || error.message);
+                toast.error("Failed to fetch future appointments.");
+            }
+        };
+
+        if (activeView === "futureAppointments" && email) {
+            fetchFutureAppointments();
+        }
+    }, [activeView, email]);
+
 
     useEffect(() => {
         const fetchAppointments = async () => {
@@ -75,6 +127,32 @@ const AppointmentBookingPatient = () => {
         }
     }, [selectedDoctorEmails]);
 
+    const handleCancelAppointment = async (appointmentId) => {
+        try {
+            const response = await axios.post("http://localhost:5000/api/auth/cancel-appointment", {
+                appointmentId,
+            });
+
+            // Show success message if cancellation is successful
+            toast.success(response.data.message);
+            alert(response.data.message)
+
+            // Remove the canceled appointment from the state
+            setAppointments((prevAppointments) =>
+                prevAppointments.filter((appt) => appt._id !== appointmentId)
+            );
+        } catch (error) {
+            console.error("Error cancelling appointment:", error.response?.data || error.message);
+            alert("Error cancelling appointment:" || error.response?.data || error.message);
+
+            // Show error message if within 24-hour window or other issues
+            toast.error(error.response?.data?.error || "Failed to cancel appointment.");
+            alert(error.response?.data?.error || "Failed to cancel appointment.")
+        }
+    };
+
+
+
     const toggleSidebar = () => {
         setIsSidebarVisible(!isSidebarVisible);
     };
@@ -87,9 +165,7 @@ const AppointmentBookingPatient = () => {
             date: "2024-07-15",
             time: "10:30 AM",
             status: "Confirmed",
-            location: "Central Hospital, Main Branch",
-            consultationFee: 500,
-            notes: "Follow-up cardiac check-up"
+            consultationFee: 500
         },
         {
             id: uuidv4(),
@@ -98,11 +174,90 @@ const AppointmentBookingPatient = () => {
             date: "2024-08-02",
             time: "02:45 PM",
             status: "Pending",
-            location: "City Medical Center, Wing B",
-            consultationFee: 450,
-            notes: "Knee pain consultation"
+            consultationFee: 450
         }
     ]);
+
+
+    const handleBookAppointment = async () => {
+        setShowPopup(false); // Close the popup
+        setShowModal(false); // Close the modal if needed
+        if (selectedSlot === null) {
+            toast.error("Please select a slot to book an appointment.");
+            return;
+        }
+
+        const slot = appointments[selectedSlot];
+
+        try {
+            // Step 1: Fetch patient details by email
+            const patientResponse = await axios.get("http://localhost:5000/api/auth/patient-details", {
+                params: { email }, // Use patient email from AuthContext
+            });
+
+            const patientName = patientResponse.data.name;
+            if (!patientName) {
+                toast.error("Patient name not found. Please ensure your profile is complete.");
+                return;
+            }
+
+            // Step 2: Book the appointment
+            const response = await axios.post("http://localhost:5000/api/auth/book-appointment", {
+                doctorEmail: slot.doctorEmail,
+                date: slot.date,
+                startTime: slot.startTime,
+                patientEmail: email,
+                patientName, // Use the fetched patient name
+            });
+
+            toast.success(response.data.message);
+
+            // Update the appointments to reflect the booked slot
+            setAppointments((prevAppointments) =>
+                prevAppointments.map((appt, index) =>
+                    index === selectedSlot ? { ...appt, status: "Pending" } : appt
+                )
+            );
+
+            setShowPopup(false); // Close the popup
+        } catch (error) {
+            console.error("Error booking appointment:", error.response?.data || error.message);
+            toast.error("Failed to book the appointment.");
+        }
+    };
+    const handleRescheduleAppointment = async (appointmentId) => {
+        try {
+            const response = await axios.post("http://localhost:5000/api/auth/reschedule-appointment", {
+                currentAppointmentId: appointmentId,
+            });
+
+            // Show success message
+            toast.success(response.data.message);
+            alert(response.data.message);
+
+            // Update the state of appointments
+            setAppointments((prevAppointments) =>
+                prevAppointments.map((appt) =>
+                    appt._id === appointmentId
+                        ? { ...appt, status: "Available", patientName: null, patientEmail: null }
+                        : appt
+                )
+            );
+
+            // Save active view and reload the page
+            localStorage.setItem("activeView", "bookAppointment");
+            window.location.reload();
+        } catch (error) {
+            // Handle errors and show appropriate messages
+            console.error("Error rescheduling appointment:", error.response?.data || error.message);
+            toast.error(error.response?.data?.error || "Failed to reschedule appointment.");
+            alert(error.response?.data?.error || "Failed to reschedule appointment.");
+        }
+    };
+
+
+
+
 
     const handleDoctorClick = async (doctor) => {
         try {
@@ -153,35 +308,6 @@ const AppointmentBookingPatient = () => {
 
 
 
-
-
-    const handleBooking = () => {
-        if (!selectedDate || !selectedSlot) {
-            toast.error("Please select both a date and a time slot.");
-            return;
-        }
-
-        const newAppointment = {
-            id: uuidv4(),
-            doctorName: selectedDoctor.name,
-            specialty: selectedDoctor.specialty,
-            date: selectedDate,
-            time: selectedSlot,
-            status: "Pending",
-            location: "Hospital Main Branch",
-            consultationFee: selectedDoctor.consultationFee,
-            notes: "New appointment"
-        };
-
-        setFutureAppointments((prevAppointments) => [
-            ...prevAppointments,
-            newAppointment,
-        ]);
-
-        toast.success(`Appointment booked with ${selectedDoctor.name} on ${selectedDate} at ${selectedSlot}`);
-        setActiveView("futureAppointments");
-    };
-
     const renderContent = () => {
         switch (activeView) {
             case "futureAppointments":
@@ -192,26 +318,32 @@ const AppointmentBookingPatient = () => {
                                 <h2>Future Appointments</h2>
                             </div>
                             <div className="card-body">
-                                <div className="appointments-grid">
-                                    {futureAppointments.map((appointment) => (
-                                        <div
-                                            key={appointment.id}
-                                            className="appointment-card"
-                                            onClick={() => setSelectedAppointment(appointment)}
-                                        >
-                                            <div className="appointment-header">
+                                <div className="appointments-container">
+                                    {appointments.length > 0 ? (
+                                        appointments.map((appointment) => (
+                                            <div
+                                                key={appointment._id}
+                                                className="appointment-card"
+                                                onClick={() => {
+                                                    setSelectedAppointment(appointment); // Set the selected appointment
+                                                    setShowModal(true); // Show the modal
+                                                }}
+                                            >
                                                 <h3>{appointment.doctorName}</h3>
-                                                <span className={`status ${appointment.status.toLowerCase()}`}>
-                                                    {appointment.status}
-                                                </span>
+                                                <p>{new Date(appointment.date).toLocaleDateString()} - {appointment.startTime}</p>
+                                                <p>Status: <strong>{appointment.status}</strong></p>
                                             </div>
-                                        </div>
-                                    ))}
+                                        ))
+                                    ) : (
+                                        <p>No future appointments found.</p>
+                                    )}
                                 </div>
                             </div>
                         </div>
                     </div>
                 );
+
+
             case "bookAppointment":
                 const filteredDoctors = doctors.filter((doctor) => {
                     const matchesName = searchQuery
@@ -478,10 +610,20 @@ const AppointmentBookingPatient = () => {
                             <button
                                 className="book-appointment-btn"
                                 disabled={selectedSlot === null}
-                            // onClick={() => handleBookAppointment(appointments[selectedSlot])}
+                                onClick={() => {
+                                    handleBookAppointment(); // Book the appointment
+                                    setShowPopup(false); // Close the popup after booking
+                                    alert("Your appointment has been booked successfully!"); // Show success message
+                                    setTimeout(() => {
+                                        window.location.reload(); // Refresh the page after booking
+                                    }, 500); // Add a short delay to ensure the booking process completes
+                                }}
                             >
                                 Book Appointment
                             </button>
+
+
+
                         </div>
                     </div>
                 )}
@@ -489,15 +631,21 @@ const AppointmentBookingPatient = () => {
 
 
                 {/* Enhanced Appointment Details Modal */}
-                {selectedAppointment && (
-                    <div className="appointment-modal-overlay">
-                        <div className="appointment-modal">
-                            <button
-                                className="modal-close-btn"
-                                onClick={() => setSelectedAppointment(null)}
-                            >
-                                <XCircle size={24} />
-                            </button>
+                {showModal && selectedAppointment && (
+                    <div className="appointment-modal-overlay"
+                        onClick={(e) => {
+                            console.log("Overlay clicked"); // Debugging log
+                            setShowModal(false); // Close the modal
+                            setSelectedAppointment(null);
+                        }}
+                    >
+                        <div
+                            className="appointment-modal"
+                            onClick={(e) => {
+                                e.stopPropagation(); // Prevent click from propagating to the overlay
+                                console.log("Modal content clicked"); // Debugging log
+                            }}
+                        >
                             <div className="modal-content">
                                 <div className="modal-header">
                                     <h2>Appointment Details</h2>
@@ -517,28 +665,14 @@ const AppointmentBookingPatient = () => {
                                         <Calendar className="modal-icon" />
                                         <div>
                                             <h3>Date</h3>
-                                            <p>{selectedAppointment.date}</p>
+                                            <p>{new Date(selectedAppointment.date).toLocaleDateString()}</p>
                                         </div>
                                     </div>
                                     <div className="modal-detail">
                                         <Clock className="modal-icon" />
                                         <div>
                                             <h3>Time</h3>
-                                            <p>{selectedAppointment.time}</p>
-                                        </div>
-                                    </div>
-                                    <div className="modal-detail">
-                                        <Stethoscope className="modal-icon" />
-                                        <div>
-                                            <h3>Location</h3>
-                                            <p>{selectedAppointment.location}</p>
-                                        </div>
-                                    </div>
-                                    <div className="modal-detail">
-                                        <InfoIcon className="modal-icon" />
-                                        <div>
-                                            <h3>Notes</h3>
-                                            <p>{selectedAppointment.notes}</p>
+                                            <p>{selectedAppointment.startTime}</p>
                                         </div>
                                     </div>
                                     <div className="modal-additional-info">
@@ -549,8 +683,30 @@ const AppointmentBookingPatient = () => {
                                     </div>
                                 </div>
                                 <div className="modal-actions">
-                                    <button className="modal-action-btn">Reschedule</button>
-                                    <button className="modal-action-btn danger">Cancel Appointment</button>
+                                    <button
+                                        className="modal-action-btn"
+                                        onClick={() => {
+                                            handleRescheduleAppointment(selectedAppointment._id);
+                                            alert(selectedAppointment.patientEmail || "email")
+                                        }}
+                                    >
+                                        Reschedule
+                                    </button>
+
+
+                                    <button
+                                        className="modal-action-btn danger"
+                                        onClick={() => {
+                                            handleCancelAppointment(selectedAppointment._id);
+                                            setTimeout(() => {
+                                                window.location.reload(); // Refresh the page after the operation
+                                            }, 500);
+                                        }}
+                                    >
+                                        Cancel Appointment
+                                    </button>
+
+
                                 </div>
                             </div>
                         </div>
@@ -558,7 +714,6 @@ const AppointmentBookingPatient = () => {
                 )}
             </div>
         </div>
-    );
-};
-
+    )
+}
 export default AppointmentBookingPatient;
