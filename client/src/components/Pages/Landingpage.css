@@ -193,6 +193,7 @@ section {
 .pulse {
   animation: pulse 2s infinite;
 }
+
 /* Floating Labels Animation */
 .form-floating>label {
   padding: 1rem;
@@ -319,7 +320,8 @@ section {
   background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('../../assets/images/team.png');
   background-attachment: fixed;
   background-attachment: fixed;
-  background-size: cover; /* This makes the image cover the container */
+  background-size: cover;
+  /* This makes the image cover the container */
   background-position: center;
   color: white;
   padding: 100px 0;
@@ -415,6 +417,7 @@ section {
   position: relative;
   padding: 20px;
   background-image: url('../../assets/images/LPdocs.png');
+  background-repeat: no-repeat;
   bottom: 20px;
   height: 70vh;
   mix-blend-mode: multiply;
