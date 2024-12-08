@@ -14,7 +14,13 @@ const Appointment = mongoose.models.Appointment || mongoose.model('Appointment',
     date: { type: Date, required: true },
     startTime: { type: String, required: true }, // Format: HH:mm
     endTime: { type: String, required: true },   // Format: HH:mm
-    status: {  
+    status: {
+        type: String,
+        enum: ['Pending', 'Available', 'Confirm', 'Completed', 'Cancelled'],
+        default: 'Pending'
+    },
+    consultationFee: { type: Number, default: 0 }
+}));
 
 
 // Configure Nodemailer
@@ -80,3 +86,27 @@ const checkAppointmentsAndSendEmails = async () => {
         console.error('Error:', error);
     }
 };
+
+
+let interval;
+
+// Flag to track if emails are being sent
+let emailsSent = false;
+
+interval = setInterval(() => {
+    console.log('Running appointment reminder job...');
+
+    if (!emailsSent) {
+        checkAppointmentsAndSendEmails().then(() => {
+            if (count !== 0) {
+                console.log('Count is no longer 0, stopping job.');
+                clearInterval(interval);  // Clear the interval after sending the email and updating count
+            }
+        }).catch(error => {
+            console.error('Error in checking appointments and sending emails:', error);
+        });
+    }
+
+}, 5000);
+
+module.exports = checkAppointmentsAndSendEmails;
