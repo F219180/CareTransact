@@ -319,8 +319,8 @@
     align-items: center;
     z-index: 1000;
     backdrop-filter: blur(5px);
-    animation: fadeIn 0.3s ease;
 }
+
 
 @keyframes fadeIn {
     from {
@@ -337,13 +337,10 @@
     border-radius: var(--border-radius);
     width: 500px;
     max-width: 90%;
-    box-shadow:
-        0 20px 50px rgba(0, 0, 0, 0.2),
-        0 15px 40px rgba(0, 188, 212, 0.1);
+    box-shadow: var(--card-shadow);
     position: relative;
     overflow: hidden;
-    transform: scale(0.9);
-    animation: popIn 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards;
+    animation: popIn 0.3s ease;
 }
 
 @keyframes popIn {
@@ -360,17 +357,18 @@
 
 .modal-close-btn {
     position: absolute;
-    top: 15px;
-    right: 15px;
-    background: none;
+    top: 10px;
+    right: 10px;
+    background: transparent;
     border: none;
+    font-size: 1.5rem;
     color: var(--primary-color);
     cursor: pointer;
-    transition: transform 0.3s ease;
 }
 
 .modal-close-btn:hover {
     transform: rotate(90deg);
+    color: var(--accent-color);
 }
 
 .modal-content {

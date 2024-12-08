@@ -22,6 +22,16 @@ router.get('/get-categorized-slots', controllers.getCategorizedSlots);
 // patient side appointment
 router.get('/find-doctor-email', controllers.findDoctorEmail);
 router.get('/get-data-ofslots', controllers.getAvailableDoctorAppointments);
+router.post('/book-appointment', controllers.bookAppointment);
+router.get('/get-patient-appointments', controllers.getPatientAppointments);
+router.get('/get-future-appointments', controllers.getFutureAppointments);
+router.post('/cancel-appointment', controllers.cancelAppointment);
+router.post('/reschedule-appointment', controllers.rescheduleAppointment);
+
+
+
+
+
 
 
 

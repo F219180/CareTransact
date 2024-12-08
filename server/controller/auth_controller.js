@@ -258,6 +258,177 @@ const getAvailableDoctorAppointments = async (req, res) => {
     }
 };
 
+const bookAppointment = async (req, res) => {
+    try {
+        const { doctorEmail, date, startTime, patientEmail, patientName } = req.body;
+
+        // Validate required fields
+        if (!doctorEmail || !date || !startTime || !patientEmail || !patientName) {
+            return res.status(400).json({ error: "Missing required fields." });
+        }
+
+        // Find the appointment slot
+        const appointment = await Appointment.findOneAndUpdate(
+            { doctorEmail, date, startTime, status: "Available" },
+            {
+                patientEmail,
+                patientName,
+                status: "Pending",
+            },
+            { new: true }
+        );
+
+        if (!appointment) {
+            return res.status(404).json({ error: "Slot not available for booking." });
+        }
+
+        res.status(200).json({ message: "Appointment booked successfully.", appointment });
+    } catch (error) {
+        console.error("Error booking appointment:", error);
+        res.status(500).json({ error: "Internal server error." });
+    }
+};
+
+const getPatientAppointments = async (req, res) => {
+    try {
+        const { email } = req.query;
+
+        if (!email) {
+            return res.status(400).json({ error: "Patient email is required." });
+        }
+
+        // Fetch appointments with status Pending or Confirmed
+        const appointments = await Appointment.find({
+            patientEmail: email,
+            status: { $in: ["Pending", "Confirmed"] },
+        });
+
+        if (!appointments || appointments.length === 0) {
+            return res.status(404).json({ message: "No appointments found for this patient." });
+        }
+
+        res.status(200).json(appointments);
+    } catch (error) {
+        console.error("Error fetching patient appointments:", error);
+        res.status(500).json({ error: "Internal server error." });
+    }
+};
+
+const getFutureAppointments = async (req, res) => {
+    try {
+        const { email } = req.query;
+
+        if (!email) {
+            return res.status(400).json({ error: "Patient email is required." });
+        }
+
+        const today = new Date();
+
+        // Fetch appointments with future dates
+        const appointments = await Appointment.find({
+            patientEmail: email,
+            date: { $gte: today },
+        });
+
+        if (!appointments || appointments.length === 0) {
+            return res.status(404).json({ message: "No future appointments found." });
+        }
+
+        res.status(200).json(appointments);
+    } catch (error) {
+        console.error("Error fetching future appointments:", error);
+        res.status(500).json({ error: "Internal server error." });
+    }
+};
+
+const cancelAppointment = async (req, res) => {
+    try {
+        const { appointmentId } = req.body;
+
+        if (!appointmentId) {
+            return res.status(400).json({ error: "Appointment ID is required." });
+        }
+
+        // Find the appointment by its ID
+        const appointment = await Appointment.findById(appointmentId);
+
+        if (!appointment) {
+            return res.status(404).json({ error: "Appointment not found." });
+        }
+
+        const appointmentDate = new Date(appointment.date);
+        const currentDate = new Date();
+
+        const timeDifference = (appointmentDate - currentDate) / (1000 * 60 * 60); // Difference in hours
+
+        // Check if the appointment is within 24 hours
+        if (timeDifference < 24) {
+            return res.status(400).json({
+                error: "Appointments cannot be canceled within 24 hours of the scheduled time.",
+            });
+        }
+
+        // Update the appointment status and clear patient details
+        appointment.status = "Available";
+        appointment.patientEmail = null;
+        appointment.patientName = null;
+
+        // Save the updated appointment
+        await appointment.save();
+
+        res.status(200).json({ message: "Appointment successfully canceled." });
+    } catch (error) {
+        console.error("Error canceling appointment:", error);
+        res.status(500).json({ error: "Internal server error." });
+    }
+};
+
+
+
+const rescheduleAppointment = async (req, res) => {
+    try {
+        const { currentAppointmentId } = req.body;
+
+        if (!currentAppointmentId) {
+            return res.status(400).json({ error: "Appointment ID is required for rescheduling." });
+        }
+
+        const currentAppointment = await Appointment.findById(currentAppointmentId);
+
+        if (!currentAppointment) {
+            return res.status(404).json({ error: "Appointment not found." });
+        }
+
+        const currentDate = new Date();
+        const appointmentDate = new Date(currentAppointment.date);
+        const timeDifference = (appointmentDate - currentDate) / (1000 * 60 * 60); // Difference in hours
+
+        if (timeDifference < 24) {
+            return res.status(400).json({
+                error: "Appointments cannot be rescheduled within 24 hours of the scheduled time.",
+            });
+        }
+
+        // Update the current appointment slot
+        currentAppointment.status = "Available";
+        currentAppointment.patientEmail = null;
+        currentAppointment.patientName = null;
+
+        await currentAppointment.save();
+
+        res.status(200).json({
+            message: "Your appointment has been successfully rescheduled. You can now book a new slot.",
+        });
+    } catch (error) {
+        console.error("Error rescheduling appointment:", error);
+        res.status(500).json({ error: "Internal server error." });
+    }
+};
+
+
+
+
+
 
 const checkUserType = async (req, res) => {
     try {
@@ -290,5 +461,10 @@ module.exports = {
     getCategorizedSlots,
     findDoctorEmail,
     getAvailableDoctorAppointments,
+    bookAppointment,
+    getPatientAppointments,
+    getFutureAppointments,
+    cancelAppointment,
+    rescheduleAppointment,
     checkUserType
 };
