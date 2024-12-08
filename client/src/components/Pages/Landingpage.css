@@ -193,100 +193,6 @@ section {
 .pulse {
   animation: pulse 2s infinite;
 }
-
-/* Appointment Section Styles */
-.appointment-section {
-  background: linear-gradient(135deg, #ecffe1 0%, #f1ffe7 100%);
-  position: relative;
-  overflow: hidden;
-}
-
-.appointment-section::before {
-  content: '';
-  position: absolute;
-  width: 300px;
-  height: 300px;
-  background: linear-gradient(135deg, #1eff00 0%, #8dff3b 100%);
-  border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.2;
-  top: -100px;
-  right: -100px;
-  z-index: 0;
-}
-
-.appointment-section::after {
-  content: '';
-  position: absolute;
-  width: 250px;
-  height: 250px;
-  background: linear-gradient(135deg, #44ff00 0%, #a3ff3b 100%);
-  border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.2;
-  bottom: -100px;
-  left: -100px;
-  z-index: 0;
-}
-
-.appointment-card {
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 20px;
-  padding: 3rem;
-  box-shadow:
-    0 20px 40px rgba(26, 35, 126, 0.1),
-    0 0 0 1px rgba(255, 255, 255, 0.5) inset,
-    0 0 40px rgba(255, 215, 0, 0.1) inset;
-  position: relative;
-  z-index: 1;
-  transform-style: preserve-3d;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.appointment-card:hover {
-  transform: translateY(-5px) scale(1.01);
-  box-shadow:
-    0 25px 50px rgba(26, 35, 126, 0.15),
-    0 0 0 1px rgba(255, 255, 255, 0.6) inset,
-    0 0 50px rgba(255, 215, 0, 0.2) inset;
-}
-
-.appointment-form .form-control,
-.appointment-form .form-select {
-  background: rgba(255, 255, 255, 0.9);
-  border: 2px solid rgba(255, 215, 0, 0.2);
-  border-radius: 12px;
-  padding: 1rem;
-  transition: all 0.3s ease;
-}
-
-.appointment-form .form-control:focus,
-.appointment-form .form-select:focus {
-  border-color: var(--primary-navy);
-  box-shadow: 0 0 0 3px rgba(26, 35, 126, 0.1),
-    0 0 20px rgba(255, 215, 0, 0.1);
-  transform: translateY(-2px);
-}
-
-.appointment-form .btn-primary {
-  background: linear-gradient(135deg, var(--primary-navy), var(--secondary-navy));
-  border: none;
-  padding: 1.2rem 3rem;
-  border-radius: 12px;
-  font-weight: 600;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  box-shadow: 0 10px 20px rgba(26, 35, 126, 0.2);
-  transition: all 0.3s ease;
-}
-
-.appointment-form .btn-primary:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 15px 30px rgba(26, 35, 126, 0.3);
-}
-
 /* Floating Labels Animation */
 .form-floating>label {
   padding: 1rem;
@@ -410,8 +316,11 @@ section {
 }
 
 .stats-counter {
-  background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('logo.svg');
+  background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('../../assets/images/team.png');
   background-attachment: fixed;
+  background-attachment: fixed;
+  background-size: cover; /* This makes the image cover the container */
+  background-position: center;
   color: white;
   padding: 100px 0;
 }
@@ -505,6 +414,11 @@ section {
 .hero-image-container {
   position: relative;
   padding: 20px;
+  background-image: url('../../assets/images/LPdocs.png');
+  bottom: 20px;
+  height: 70vh;
+  mix-blend-mode: multiply;
+  opacity: 0.9;
 }
 
 .hero-image-container::before {

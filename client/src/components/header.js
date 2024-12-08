@@ -1,6 +1,7 @@
 import React from 'react';
 import './head_footer.css';
 import { useNavigate } from 'react-router-dom';
+import { navigate } from '../../node_modules/react-big-calendar/lib/utils/constants';
 
 function Header() {
   const navigate = useNavigate();
@@ -8,7 +9,9 @@ function Header() {
   const handleLogin = () => {
     navigate('/Login');
   };
-
+  const handleLandingpage=()=>{
+      navigate('/LP')
+   }
   return (
     <nav className="navbar navbar-expand-lg navbar-dark fixed-top bg-gradient">
       <div className="container">
@@ -20,7 +23,9 @@ function Header() {
         </button>
         <div className="collapse navbar-collapse" id="navbarNav">
           <ul className="navbar-nav ms-auto">
-            <li className="nav-item"><a className="nav-link active" href="#home">Home</a></li>
+          <li className="nav-item">
+             <a className="nav-link active" onClick={handleLandingpage}>Home</a>
+         </li>
             <li className="nav-item"><a className="nav-link" href="#services">Services</a></li>
             <li className="nav-item"><a className="nav-link" href="#about">About</a></li>
             <li className="nav-item"><a className="nav-link" href="#contact">Contact</a></li>

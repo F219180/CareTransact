@@ -154,11 +154,11 @@ function LP() {
                             transition={{ duration: 1, delay: 0.8 }}
                         >
                             <div className="hero-image-container">
-                                <img
-                                    src="client/src/assets/images/doctors.webp"
+                                {/* <img
+                                    src="LPdoc.jpeg"
                                     alt="LOGO"
                                     className="img-fluid floating-animation"
-                                />
+                                /> */}
                             </div>
                         </motion.div>
                     </div>
@@ -239,147 +239,6 @@ function LP() {
                         ))}
                     </div>
                 </div>
-            </section>
-
-            {/* Appointment Section */}
-            <section id="book-appointment" className="appointment-section">
-                <motion.div
-                    className="container"
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6 }}
-                >
-                    <div className="row justify-content-center">
-                        <div className="col-lg-8">
-                            <div className="appointment-card">
-                                <h2 className="text-center mb-4">Book Your Appointment</h2>
-                                <form onSubmit={handleSubmit} className="appointment-form">
-                                    <div className="row g-3">
-                                        <div className="col-md-6">
-                                            <input
-                                                type="text"
-                                                name="firstName"
-                                                className="form-control"
-                                                placeholder="First Name"
-                                                value={formData.firstName}
-                                                onChange={handleChange}
-                                                required
-                                            />
-                                        </div>
-                                        <div className="col-md-6">
-                                            <input
-                                                type="text"
-                                                name="lastName"
-                                                className="form-control"
-                                                placeholder="Last Name"
-                                                value={formData.lastName}
-                                                onChange={handleChange}
-                                                required
-                                            />
-                                        </div>
-                                        <div className="col-md-6">
-                                            <input
-                                                type="email"
-                                                name="email"
-                                                className="form-control"
-                                                placeholder="Email Address"
-                                                value={formData.email}
-                                                onChange={handleChange}
-                                                required
-                                            />
-                                        </div>
-                                        <div className="col-md-6">
-                                            <input
-                                                type="tel"
-                                                name="phone"
-                                                className="form-control"
-                                                placeholder="Phone Number"
-                                                value={formData.phone}
-                                                onChange={handleChange}
-                                                required
-                                            />
-                                        </div>
-                                        <div className="col-md-6">
-                                            <input
-                                                type="date"
-                                                name="date"
-                                                className="form-control"
-                                                value={formData.date}
-                                                onChange={handleChange}
-                                                required
-                                            />
-                                        </div>
-                                        <div className="col-md-6">
-                                            <select
-                                                name="timeSlot"
-                                                className="form-select"
-                                                value={formData.timeSlot}
-                                                onChange={handleChange}
-                                                required
-                                            >
-                                                <option value="">Select Time Slot</option>
-                                                <option>Morning (9AM - 12PM)</option>
-                                                <option>Afternoon (1PM - 4PM)</option>
-                                                <option>Evening (5PM - 8PM)</option>
-                                            </select>
-                                        </div>
-                                        <div className="col-12">
-                                            <select
-                                                name="department"
-                                                className="form-select"
-                                                value={formData.department}
-                                                onChange={handleChange}
-                                                required
-                                            >
-                                                <option value="">Select Department</option>
-                                                <option>General Checkup</option>
-                                                <option>Cardiology</option>
-                                                <option>Dental Care</option>
-                                                <option>Orthopedics</option>
-                                                <option>Neurology</option>
-                                            </select>
-                                        </div>
-                                        <div className="col-12">
-                                            <textarea
-                                                name="notes"
-                                                className="form-control"
-                                                rows="3"
-                                                placeholder="Additional Notes"
-                                                value={formData.notes}
-                                                onChange={handleChange}
-                                            ></textarea>
-                                        </div>
-                                        <div className="col-12">
-                                            <div className="form-check">
-                                                <input
-                                                    type="checkbox"
-                                                    name="terms"
-                                                    className="form-check-input"
-                                                    checked={formData.terms}
-                                                    onChange={handleChange}
-                                                    required
-                                                />
-                                                <label className="form-check-label">
-                                                    I agree to the terms and conditions
-                                                </label>
-                                            </div>
-                                        </div>
-                                        <div className="col-12 text-center">
-                                            <motion.button
-                                                type="submit"
-                                                className="btn btn-primary btn-lg px-5"
-                                                whileHover={{ scale: 1.05 }}
-                                                whileTap={{ scale: 0.95 }}
-                                            >
-                                                Book Now
-                                            </motion.button>
-                                        </div>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </motion.div>
             </section>
             {/* Stats Counter Section */}
             <section className="stats-section py-5">

@@ -205,9 +205,11 @@
     flex: 1; /* Takes up less space compared to the form */
     display: flex;
     justify-content: center;
-    align-items: center;
+    /* align-items: flex-end; */
     cursor: default;
     pointer-events: none;
+    position: relative;
+    top: 20px;
 }
 
 
