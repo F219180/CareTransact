@@ -3,6 +3,7 @@ const cors = require('cors');
 const connectDB = require('./utils/db');
 const authRouter = require('./router/auth_router');
 require('dotenv').config();
+const checkAppointmentsAndSendEmails = require('./services/reminder_service');
 
 const app = express();
 
@@ -24,3 +25,6 @@ connectDB().then(() => {
     console.error('Error connecting to the database:', error);
     process.exit(1);
 });
+
+// Run the appointment reminder service when the server starts
+checkAppointmentsAndSendEmails();
