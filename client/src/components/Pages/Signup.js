@@ -116,7 +116,7 @@ function Signup() {
             return { width: '100%', backgroundColor: '#00ff00', text: 'Strong' };
         } else if (validations.length && validations.number) {
             return { width: '66%', backgroundColor: '#ffa500', text: 'Medium' };
-        } else if (validations.length) {
+        }else if (validations.length) {
             return { width: '33%', backgroundColor: '#ff0000', text: 'Weak' };
         }
         return { width: '0%', backgroundColor: '#e0e0e0', text: '' };
@@ -230,7 +230,7 @@ function Signup() {
                                 onClick={togglePasswordVisibility}
                                 onMouseDown={(e) => e.preventDefault()}
                             >
-                                {showPassword ? <FaEyeSlash /> : <FaEye />}
+                                {showPassword ? <FaEye />:<FaEyeSlash />}
                             </span>
                         </div>
                         {isPasswordFocused && password && (
@@ -260,7 +260,7 @@ function Signup() {
                                 onClick={toggleConfirmPasswordVisibility}
                                 onMouseDown={(e) => e.preventDefault()}
                             >
-                                {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                                {showConfirmPassword ? <FaEye />: <FaEyeSlash />}
                             </span>
                         </div>
                         {confirmPassword && !validations.passwordMatch && (
