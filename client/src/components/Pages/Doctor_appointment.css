@@ -389,38 +389,21 @@ select {
     transition: all 0.3s ease-in-out;
 }
 
-/* Sidebar visibility styles */
-.sidebar-visible {
-    transition: margin-left 0.3s ease-in-out;
-}
-
-.sidebar-hidden {
-    transition: margin-left 0.3s ease-in-out;
-}
-
 /* Calendar Section */
 .calendar-section {
-    width: calc(100% - 270px);
+    width: calc(100% - 240px);
     /* Default width when sidebar is visible */
     transition: all 0.3s ease-in-out;
-    margin-left: 150px;
+    margin-left: 240px;
     /* Calendar pushed to the right */
 }
 
 /* When sidebar is hidden */
 .doctor-dashboard-advanced.sidebar-hidden .calendar-section {
-    width: 100%;
+    width: 90%;
     /* Calendar takes full width when sidebar is hidden */
-    margin-left: 0;
+    margin-left: 90px;
     /* No margin left when sidebar is hidden */
-}
-
-/* When sidebar is visible */
-.doctor-dashboard-advanced.sidebar-visible .calendar-section {
-    width: calc(100% - 270px);
-    /* Calendar shrinks more when sidebar is visible */
-    margin-left: 260px;
-    /* Calendar pushed to the right */
 }
 
 /* Dashboard Grid (cards section) */
@@ -439,14 +422,14 @@ select {
     flex: 1 1 calc(50% - 20px);
     /* Make cards take up 50% of the width */
     box-sizing: border-box;
-    max-width: 500px;
+    max-width: 585px;
     /* Prevent cards from shrinking too small */
-    background-color: #f9f9f9;
+    background-color: #e4f0f8;
     border: 1px solid #ddd;
     border-radius: 8px;
     padding: 20px;
     position: relative;
-    left: 20%;
+    left: 17%;
 }
 
 .appointments-card {
@@ -460,10 +443,10 @@ select {
 .doctor-dashboard-advanced.sidebar-hidden .dashboard-card {
     flex: 1 1 calc(55% - 20px);
     /* Increased card width */
-    max-width: 600px;
+    max-width: 650px;
     /* Increased max-width */
     position: relative;
-    left: -7px;
+    left: 6%;
     /* Move the card slightly to the left */
 }
 
@@ -498,4 +481,32 @@ select {
     /* Red color */
     font-size: 12px;
     margin-top: 5px;
+}
+
+.save-button {
+    position: relative;
+    top: 15px;
+    padding: 15px 30px;
+    /* Increases the size by adding padding */
+    font-size: 16px;
+    /* Adjust the font size for better visibility */
+    border-radius: 10px;
+    /* Adds rounded corners */
+    background-color: #007BFF;
+    /* Optional: Set a background color */
+    color: white;
+    /* Optional: Set text color */
+    border: none;
+    /* Optional: Remove the default border */
+    cursor: pointer;
+    /* Changes the cursor to pointer on hover */
+    transition: all 0.3s ease;
+    /* Smooth hover effect */
+}
+
+.save-button:hover {
+    background-color: #0056b3;
+    /* Optional: Darker shade on hover */
+    transform: scale(1.05);
+    /* Slightly enlarges the button on hover */
 }
