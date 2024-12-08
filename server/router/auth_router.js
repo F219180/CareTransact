@@ -19,6 +19,10 @@ router.get('/get-available-slots', controllers.getAvailableSlots);
 router.delete('/remove-expired-slots', controllers.removeExpiredSlots);
 router.get('/get-categorized-slots', controllers.getCategorizedSlots);
 
+// patient side appointment
+router.get('/find-doctor-email', controllers.findDoctorEmail);
+router.get('/get-data-ofslots', controllers.getAvailableDoctorAppointments);
+
 
 
 // Auth Routes
