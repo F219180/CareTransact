@@ -13,11 +13,18 @@ router.get('/doctor-details', controllers.getDoctorDetails);
 router.get('/doctor-profile', controllers.getDoctorProfile);
 router.put('/update-doctor', controllers.updateDoctor);
 
+//doctor confirming appointment
+router.get('/get-doctor-appointments', controllers.getDoctorAppointments);
+router.put('/update-appointment-status', controllers.updateAppointmentStatus);
+
+
 //Auth Appointment
 router.post('/save-appointment-slot', controllers.saveAppointmentSlot);
 router.get('/get-available-slots', controllers.getAvailableSlots);
 router.delete('/remove-expired-slots', controllers.removeExpiredSlots);
 router.get('/get-categorized-slots', controllers.getCategorizedSlots);
+router.delete('/remove-past-appointments', controllers.removePastAppointments);
+
 
 // patient side appointment
 router.get('/find-doctor-email', controllers.findDoctorEmail);

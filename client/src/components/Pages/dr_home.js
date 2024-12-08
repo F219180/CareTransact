@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import "./dr_home.css";
-import DocImage from "../../assets/images/image.jpg";
 import editIcon from "../../assets/images/edit_profile.png";
 import { useAuth } from "../../context/AuthContext";
 import axios from "axios";
+import defaultimg from "../../assets/images/image.jpg"
+import bg from "../../assets/images/patinet_bg.avif"
 
 const DoctorProfile = ({ isSidebarVisible, toggleSidebar }) => {
     const [isEditMode, setIsEditMode] = useState(false);
@@ -108,12 +109,18 @@ const DoctorProfile = ({ isSidebarVisible, toggleSidebar }) => {
     };
 
     return (
-        <div className={`doc-home-container ${isSidebarVisible ? "sidebar-visible" : "sidebar-hidden"}`}>
+        <div className={`doc-home-container ${isSidebarVisible ? "sidebar-visible" : "sidebar-hidden"}`}
+            style={{
+                backgroundImage: `url(${bg})`,
+                backgroundSize: 'cover', // Ensures the image covers the entire container
+                backgroundPosition: 'center', // Centers the image
+                backgroundRepeat: 'no-repeat', // Prevents repeating the image
+            }}>
             <div className="scrollable-container">
                 <div className={`doctor-profile-card ${isSidebarVisible ? "with-sidebar" : ""}`}>
                     <div className="profile-image-container-doc">
                         <img
-                            src={uploadedImage || (profileData.profilePicture === "N/A" ? DocImage : profileData.profilePicture)}
+                            src={uploadedImage || (profileData.profilePicture === "N/A" ? defaultimg : profileData.profilePicture)}
                             alt="Doctor"
                             className="profile-image-doc"
                         />

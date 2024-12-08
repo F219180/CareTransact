@@ -184,6 +184,23 @@ const removeExpiredSlots = async () => {
         console.error("Error removing expired slots:", error);
     }
 };
+const removePastAppointments = async (req, res) => {
+    try {
+        const now = new Date(); // Current date and time
+        await Appointment.deleteMany({
+            $or: [
+                { date: { $lt: now } }, // Past dates
+                { date: now, endTime: { $lte: now.toTimeString().slice(0, 5) } }, // Same date but past time
+            ],
+        });
+
+        res.status(200).json({ message: "Past appointments removed successfully." });
+    } catch (error) {
+        console.error("Error removing past appointments:", error);
+        res.status(500).json({ error: "Internal server error." });
+    }
+};
+
 
 
 const getCategorizedSlots = async (req, res) => {
@@ -448,6 +465,73 @@ const checkUserType = async (req, res) => {
     }
 };
 
+
+
+//doctor confirming the appointment
+const getDoctorAppointments = async (req, res) => {
+    try {
+        const { doctorEmail } = req.query;
+
+        if (!doctorEmail) {
+            return res.status(400).json({ error: "Doctor email is required." });
+        }
+
+        // Fetch pending appointments
+        const pendingAppointments = await Appointment.find({
+            doctorEmail,
+            status: "Pending",
+        });
+
+        // Fetch confirmed appointments
+        const futureAppointments = await Appointment.find({
+            doctorEmail,
+            status: "Confirmed",
+        });
+
+        res.status(200).json({
+            pendingAppointments,
+            futureAppointments,
+        });
+    } catch (error) {
+        console.error("Error fetching doctor's appointments:", error);
+        res.status(500).json({ error: "Internal server error." });
+    }
+};
+const updateAppointmentStatus = async (req, res) => {
+    try {
+        console.log("in auth controller.js updateAppointmentStatus");
+        const { appointmentId, status, patientName, patientEmail } = req.body;
+
+        if (!appointmentId || !status) {
+            return res.status(400).json({ error: 'Appointment ID and status are required.' });
+        }
+
+        const updateFields = { status };
+
+        // Clear patient details if the status is 'Available'
+        if (status === 'Available') {
+            updateFields.patientName = patientName || null;
+            updateFields.patientEmail = patientEmail || null;
+        }
+
+        const updatedAppointment = await Appointment.findByIdAndUpdate(
+            appointmentId,
+            updateFields,
+            { new: true }
+        );
+
+        if (!updatedAppointment) {
+            return res.status(404).json({ error: 'Appointment not found.' });
+        }
+
+        res.status(200).json({ message: 'Appointment updated successfully.', appointment: updatedAppointment });
+    } catch (error) {
+        console.error('Error updating appointment status:', error);
+        res.status(500).json({ error: 'Internal server error.' });
+    }
+};
+
+
 module.exports = {
     addPatient,
     getPatientDetails,
@@ -458,6 +542,7 @@ module.exports = {
     saveAppointmentSlot,
     getAvailableSlots,
     removeExpiredSlots,
+    removePastAppointments,
     getCategorizedSlots,
     findDoctorEmail,
     getAvailableDoctorAppointments,
@@ -466,5 +551,7 @@ module.exports = {
     getFutureAppointments,
     cancelAppointment,
     rescheduleAppointment,
-    checkUserType
+    checkUserType,
+    getDoctorAppointments,
+    updateAppointmentStatus
 };

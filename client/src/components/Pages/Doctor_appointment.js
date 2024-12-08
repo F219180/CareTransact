@@ -3,7 +3,6 @@ import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import './Doctor_appointment.css';
-import Sidebardoctor from "./sidebardoctor";
 import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import {
     FaCalendarCheck,
@@ -18,8 +17,43 @@ import { useAuth } from '../../context/AuthContext'; // Import useAuth hook
 // Initialize localizer for react-big-calendar
 const localizer = momentLocalizer(moment);
 
-const DoctorAppointmentDashboard = () => {
+const DoctorAppointmentDashboard = ({ isSidebarVisible }) => {
     const { email } = useAuth();
+    const [pendingAppointments, setPendingAppointments] = useState([]);
+    const [futureAppointments, setFutureAppointments] = useState([]);
+    useEffect(() => {
+        const fetchAppointments = async () => {
+            try {
+                const response = await axios.get('http://localhost:5000/api/auth/get-doctor-appointments', {
+                    params: { doctorEmail: email },
+                });
+
+                const { pendingAppointments, futureAppointments } = response.data;
+
+                // Calculate today's and tomorrow's dates
+                const today = moment().startOf('day');
+                const tomorrow = moment().add(1, 'day').startOf('day');
+                const dayAfterTomorrow = moment().add(2, 'days').startOf('day');
+
+                // Filter out appointments for today and tomorrow
+                const filteredFutureAppointments = futureAppointments.filter((appt) => {
+                    const appointmentDate = moment(appt.date);
+                    return appointmentDate.isSameOrAfter(dayAfterTomorrow); // Include only appointments from the day after tomorrow onward
+                });
+
+                setPendingAppointments(pendingAppointments);
+                setFutureAppointments(filteredFutureAppointments);
+            } catch (error) {
+                console.error('Error fetching appointments:', error);
+            }
+        };
+
+        if (email) {
+            fetchAppointments();
+        }
+    }, [email]);
+
+
     // Validation errors state
     const [categorizedSlots, setCategorizedSlots] = useState({
         today: [],
@@ -48,6 +82,20 @@ const DoctorAppointmentDashboard = () => {
         }
     }, [email]);
 
+    useEffect(() => {
+        const removeExpiredAppointmentsOnLoad = async () => {
+            try {
+                const response = await axios.delete('http://localhost:5000/api/auth/remove-past-appointments');
+                if (response.status === 200) {
+                    console.log(response.data.message);
+                }
+            } catch (error) {
+                console.error("Error removing past appointments:", error);
+            }
+        };
+
+        removeExpiredAppointmentsOnLoad();
+    }, []); // Empty dependency array ensures this runs only on component mount
 
     const validateSlot = () => {
         const newErrors = {};
@@ -113,20 +161,6 @@ const DoctorAppointmentDashboard = () => {
         setErrors({}); // Clear errors after successful submission
     };
 
-    // State for appointments
-    const [futureAppointments, setFutureAppointments] = useState([
-        { id: 1, patientName: 'John Doe', date: '2024-02-15', time: '10:00 AM', reason: 'Routine Checkup' },
-        { id: 2, patientName: 'Jane Smith', date: '2024-02-16', time: '02:30 PM', reason: 'Follow-up Consultation' }
-
-    ]);
-
-    const [pendingAppointments, setPendingAppointments] = useState([
-        { id: 3, patientName: 'Alice Johnson', date: '2024-02-14', time: '11:00 AM', reason: 'Initial Consultation' },
-        { id: 4, patientName: 'Bob Williams', date: '2024-02-17', time: '03:45 PM', reason: 'Specialist Referral' },
-        { id: 1, patientName: 'kamla safdar', date: '2024-02-17', time: '10:00 AM', reason: 'Routine Checkup' },
-        { id: 2, patientName: 'Almas Aina', date: '2024-02-18', time: '02:30 PM', reason: 'Follow-up Consultation' }
-    ]);
-
 
     useEffect(() => {
         if (!email) {
@@ -160,6 +194,47 @@ const DoctorAppointmentDashboard = () => {
     };
 
 
+    const handleAccept = async (appointment) => {
+        try {
+
+            const response = await axios.put('http://localhost:5000/api/auth/update-appointment-status', {
+                appointmentId: appointment._id,
+                status: 'Confirmed',
+            });
+
+            if (response.status === 200) {
+                // Remove from pending appointments
+                alert(appointment.patientEmail)
+                setPendingAppointments((prev) => prev.filter((a) => a._id !== appointment._id));
+
+                // Add to future appointments
+                setFutureAppointments((prev) => [...prev, { ...appointment, status: 'Confirmed' }]);
+            }
+        } catch (error) {
+            console.error('Error accepting appointment:', error);
+        }
+    };
+
+    const handleReject = async (appointment) => {
+        try {
+            const response = await axios.put('http://localhost:5000/api/auth/update-appointment-status', {
+                appointmentId: appointment._id,
+                status: 'Available',
+                patientName: null,
+                patientEmail: null,
+            });
+
+            if (response.status === 200) {
+                // Remove from pending appointments
+                setPendingAppointments((prev) => prev.filter((a) => a._id !== appointment._id));
+            }
+        } catch (error) {
+            console.error('Error rejecting appointment:', error);
+        }
+    };
+
+
+
 
 
     // Calendar events state
@@ -176,11 +251,6 @@ const DoctorAppointmentDashboard = () => {
         startTime: '',
         endTime: ''
     });
-    const [isSidebarVisible, setIsSidebarVisible] = useState(true);
-
-    const toggleSidebar = () => {
-        setIsSidebarVisible(prevState => !prevState); // Use previous state
-    };
     useEffect(() => {
         const appointmentEvents = futureAppointments.map(appt => ({
             title: `${appt.patientName} - ${appt.reason}`,
@@ -194,44 +264,56 @@ const DoctorAppointmentDashboard = () => {
             return [...filteredEvents, ...appointmentEvents];
         });
     }, [futureAppointments]);
-    // Convert appointments to calendar events
-    // Free slots on the calendar
     useEffect(() => {
-        const freeSlotEvents = freeSlots.map(slot => ({
-            title: 'Appointment',
-            start: new Date(slot.date + ' ' + slot.startTime),
-            end: moment(new Date(slot.date + ' ' + slot.startTime)).add(1, 'hour').toDate(),
-            type: 'freeSlot'
-        }));
+        if (futureAppointments.length > 0) {
+            const appointmentEvents = futureAppointments.map((appt) => ({
+                title: '', // Keep title empty for dots
+                start: new Date(appt.date), // Start at the date of the appointment
+                end: new Date(appt.date),   // End at the same date (all-day event)
+                type: 'appointment',        // Custom type to identify these events
+            }));
 
-        setCalendarEvents(prevEvents => {
-            const filteredEvents = prevEvents.filter(event => event.type !== 'freeSlot');
-            return [...filteredEvents, ...freeSlotEvents];
-        });
-    }, [freeSlots]);
-
-    // Appointment management handlers
-    const handleAppointmentAccept = (appointment) => {
-        setPendingAppointments(pendingAppointments.filter(appt => appt.id !== appointment.id));
-
-        // Add accepted appointment to future appointments
-        const acceptedAppointment = { ...appointment, isAccepted: true };
-        setFutureAppointments(prevAppointments => [...prevAppointments, acceptedAppointment]);
-
-        // Add the accepted appointment to the calendar
-        const newCalendarEvent = {
-            title: `${appointment.patientName} - ${appointment.reason}`,
-            start: new Date(`${appointment.date} ${appointment.time}`),
-            end: moment(new Date(`${appointment.date} ${appointment.time}`)).add(1, 'hour').toDate(),
-            type: 'appointment'
-        };
-        setCalendarEvents(prevEvents => [...prevEvents, newCalendarEvent]);
-    };
+            setCalendarEvents((prevEvents) => {
+                const filteredEvents = prevEvents.filter((event) => event.type !== 'appointment');
+                return [...filteredEvents, ...appointmentEvents];
+            });
+        }
+    }, [futureAppointments]);
 
 
+    const handleAppointmentAccept = async (appointment) => {
+        try {
+            alert(appointment.doctorEmail)
+            // Update the appointment status in the backend
+            const response = await axios.put('http://localhost:5000/api/auth/update-appointment-status', {
+                appointmentId: appointment._id,
+                status: 'Confirmed',
+            });
 
-    const handleAppointmentReject = (appointment) => {
-        setPendingAppointments(pendingAppointments.filter(appt => appt.id !== appointment.id));
+            if (response.status === 200) {
+                // Remove accepted appointment from pending appointments
+                setPendingAppointments(pendingAppointments.filter(appt => appt.id !== appointment.id));
+
+                // Add accepted appointment to future appointments
+                const acceptedAppointment = { ...appointment, isAccepted: true };
+                setFutureAppointments(prevAppointments => [...prevAppointments, acceptedAppointment]);
+
+                // Add the accepted appointment to the calendar
+                const newCalendarEvent = {
+                    title: `${appointment.patientName} - ${appointment.reason}`,
+                    start: new Date(`${appointment.date} ${appointment.time}`),
+                    end: moment(new Date(`${appointment.date} ${appointment.time}`)).add(1, 'hour').toDate(),
+                    type: 'appointment'
+                };
+                setCalendarEvents(prevEvents => [...prevEvents, newCalendarEvent]);
+                alert("Appointment accepted successfully!");
+            } else {
+                alert("Failed to accept appointment. Please try again.");
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Failed to accept appointment. Please try again.");
+        }
     };
 
 
@@ -250,8 +332,7 @@ const DoctorAppointmentDashboard = () => {
     const monthYear = moment(currentDate).format('MMMM YYYY'); // Get the month and year
 
     return (
-        <div className={`doctor-dashboard-advanced ${isSidebarVisible ? 'sidebar-visible' : 'sidebar-hidden'}`}>
-            <Sidebardoctor toggleSidebar={toggleSidebar} isSidebarVisible={isSidebarVisible} />
+        <div className={`doctor-dashboard-advanced ${isSidebarVisible ? "" : "sidebar-hidden"}`}>
             {/* Calendar Section */}
             <div className='calendar-section'>
                 <div className="month-year">
@@ -275,16 +356,44 @@ const DoctorAppointmentDashboard = () => {
                                 <button onClick={handleNextMonth} className="next-button">
                                     <FaChevronRight size={20} />
                                 </button>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                    <div
+                                        style={{
+                                            backgroundColor: '#FF69B4', // Pink dot color
+                                            borderRadius: '50%',       // Make it circular
+                                            height: '10px',            // Dot size
+                                            width: '10px',
+                                        }}
+                                    ></div>
+                                    <span
+                                        style={{
+                                            fontSize: '13px',
+                                            color: '#000000',
+                                        }}
+                                    >
+                                        Appointments
+                                    </span>
+                                </div>
                             </div>
+
                         ),
+
                     }}
-                    eventPropGetter={(event) => ({
-                        style: {
-                            backgroundColor: event.allDay ? '#f00' : '#00f',
-                            borderRadius: '50%', // Make the event a dot
-                            padding: '5px', // Small dot size
+                    eventPropGetter={(event) => {
+                        if (event.type === 'appointment') {
+                            return {
+                                style: {
+                                    backgroundColor: '#FF69B4', // Blue dot
+                                    borderRadius: '50%',       // Make it a circle
+                                    height: '10px',            // Adjust dot size
+                                    width: '10px',
+                                    position: 'relative',
+                                    top: '-15px'
+                                },
+                            };
                         }
-                    })}
+                        return {};
+                    }}
                 />
             </div>
 
@@ -404,30 +513,27 @@ const DoctorAppointmentDashboard = () => {
                                     {pendingAppointments.length === 0 ? (
                                         <p className="empty-state">No pending appointments</p>
                                     ) : (
-                                        pendingAppointments.map(appointment => (
-                                            <div
-                                                key={appointment.id}
-                                                className="appointment-card pending"
-                                            >
+                                        pendingAppointments.map((appointment) => (
+                                            <div key={appointment._id} className="appointment-card pending">
                                                 <div className="appointment-details">
                                                     <p className="patient-name">{appointment.patientName}</p>
-                                                    <p className="appointment-info">
-                                                        {appointment.date} at {appointment.time}
+                                                    <p>
+                                                        {moment(appointment.date).format('DD/MM/YYYY')} at {appointment.startTime}
                                                     </p>
                                                     <p className="appointment-reason">{appointment.reason}</p>
                                                 </div>
                                                 <div className="appointment-actions">
                                                     <button
-                                                        onClick={() => handleAppointmentAccept(appointment)}
                                                         className="action-button accept"
+                                                        onClick={() => handleAppointmentAccept(appointment)}
                                                     >
-                                                        <FaCheckCircle /> Accept
+                                                        Accept
                                                     </button>
                                                     <button
-                                                        onClick={() => handleAppointmentReject(appointment)}
                                                         className="action-button reject"
+                                                        onClick={() => handleReject(appointment)}
                                                     >
-                                                        <FaTimesCircle /> Reject
+                                                        Reject
                                                     </button>
                                                 </div>
                                             </div>
@@ -435,18 +541,19 @@ const DoctorAppointmentDashboard = () => {
                                     )}
                                 </div>
 
+
                                 {/* Future Appointments Section */}
                                 <div className="modal-section future-section">
                                     <h3>Future Appointments</h3>
                                     {futureAppointments.length === 0 ? (
-                                        <p className="empty-state">No upcoming appointments</p>
+                                        <p className="empty-state">No future appointments</p>
                                     ) : (
-                                        futureAppointments.map(appointment => (
-                                            <div key={appointment.id} className="appointment-card future">
+                                        futureAppointments.map((appointment) => (
+                                            <div key={appointment._id} className="appointment-card future">
                                                 <div className="appointment-details">
                                                     <p className="patient-name">{appointment.patientName}</p>
-                                                    <p className="appointment-info">
-                                                        {appointment.date} at {appointment.time}
+                                                    <p>
+                                                        {moment(appointment.date).format('DD/MM/YYYY')} at {appointment.startTime}
                                                     </p>
                                                     <p className="appointment-reason">{appointment.reason}</p>
                                                 </div>
@@ -454,7 +561,9 @@ const DoctorAppointmentDashboard = () => {
                                         ))
                                     )}
                                 </div>
+
                             </div>
+
                         </div>
                     </div>
                 )}
