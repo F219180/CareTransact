@@ -63,6 +63,7 @@ const App = () => {
 
           <Routes>
             <Route index element={<LP />} />
+            <Route path="/LP" element={<LP />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
