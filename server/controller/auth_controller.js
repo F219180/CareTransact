@@ -155,14 +155,11 @@ const getAvailableSlots = async (req, res) => {
     try {
         const { doctorEmail } = req.query;
 
-        if (!doctorEmail) {
-            return res.status(400).json({ error: "Doctor email is required." });
-        }
-
-        const availableSlots = await Appointment.find({ doctorEmail, status: "Available" });
+        const query = doctorEmail ? { doctorEmail, status: "Available" } : { status: "Available" };
+        const availableSlots = await Appointment.find(query);
 
         if (!availableSlots || availableSlots.length === 0) {
-            return res.status(404).json({ error: "No available slots found for this doctor." });
+            return res.status(404).json({ error: "No available slots found." });
         }
 
         res.status(200).json(availableSlots);
@@ -171,6 +168,7 @@ const getAvailableSlots = async (req, res) => {
         res.status(500).json({ error: "Internal server error." });
     }
 };
+
 
 const removeExpiredSlots = async () => {
     try {
@@ -219,6 +217,46 @@ const getCategorizedSlots = async (req, res) => {
 
 //Patient Appointment selection
 
+const findDoctorEmail = async (req, res) => {
+    try {
+        const { name, specialization, gender, yearOfExperience } = req.query;
+        const doctor = await Doctor.findOne({
+            name,
+            specialization,
+            gender,
+            yearOfExperience,
+        });
+        if (doctor) {
+            return res.json({ email: doctor.email });
+        }
+        return res.status(404).json({ error: "Doctor not found" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Failed to fetch doctor email" });
+    }
+};
+
+
+const getAvailableDoctorAppointments = async (req, res) => {
+    try {
+        const { doctorEmail } = req.query;
+
+        if (!doctorEmail) {
+            return res.status(400).json({ error: "Doctor email is required." });
+        }
+
+        const appointments = await Appointment.find({ doctorEmail, status: "Available" });
+
+        if (!appointments || appointments.length === 0) {
+            return res.status(404).json({ error: "No available appointments found for this doctor." });
+        }
+
+        res.status(200).json(appointments);
+    } catch (error) {
+        console.error("Error fetching doctor's available appointments:", error);
+        res.status(500).json({ error: "Internal server error." });
+    }
+};
 
 
 const checkUserType = async (req, res) => {
@@ -250,5 +288,7 @@ module.exports = {
     getAvailableSlots,
     removeExpiredSlots,
     getCategorizedSlots,
+    findDoctorEmail,
+    getAvailableDoctorAppointments,
     checkUserType
 };

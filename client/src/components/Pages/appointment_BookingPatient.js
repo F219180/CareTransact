@@ -1,5 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./appointment_BookingPatient.css";
+import axios from "axios";
+import defaultimg from "../../assets/images/image.jpg"
 import SidebarPatient from "./sidebarPatient";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "react-toastify";
@@ -11,13 +13,71 @@ import {
     InfoIcon,
     XCircle
 } from "lucide-react";
+let globalAppointments = [];
+
 
 const AppointmentBookingPatient = () => {
-    const [isSidebarVisible, setIsSidebarVisible] = useState(true);
-    const [activeView, setActiveView] = useState(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedGender, setSelectedGender] = useState("");
     const [selectedSpecialization, setSelectedSpecialization] = useState("");
+    const [showPopup, setShowPopup] = useState(false);
+
+    const [selectedDoctor, setSelectedDoctor] = useState(null);
+    const [selectedDate, setSelectedDate] = useState(null);
+    const [selectedSlot, setSelectedSlot] = useState(null);
+    const [selectedAppointment, setSelectedAppointment] = useState(null);
+
+    const [isSidebarVisible, setIsSidebarVisible] = useState(true);
+    const [activeView, setActiveView] = useState(null);
+    const [doctors, setDoctors] = useState([]);
+    const [appointments, setAppointments] = useState([]);
+    const [selectedDoctorEmails, setSelectedDoctorEmails] = useState([]);
+
+    useEffect(() => {
+        const fetchAppointments = async () => {
+            try {
+                const response = await axios.get("http://localhost:5000/api/auth/get-available-slots");
+                const availableAppointments = response.data;
+
+                const emails = availableAppointments.map((appointment) => appointment.doctorEmail);
+                setSelectedDoctorEmails([...new Set(emails)]); // Ensure unique emails
+                setAppointments(availableAppointments);
+            } catch (error) {
+                console.error("Error fetching appointments:", error.response?.data || error.message);
+                toast.error("Failed to fetch appointments.");
+            }
+        };
+
+
+        fetchAppointments();
+    }, []);
+
+    useEffect(() => {
+        const fetchDoctors = async () => {
+            try {
+                const promises = selectedDoctorEmails.map((email) =>
+                    axios.get(`http://localhost:5000/api/auth/doctor-details`, {
+                        params: { email },
+                    })
+                );
+
+                const responses = await Promise.all(promises);
+                const doctorData = responses.map((res) => res.data);
+                setDoctors(doctorData);
+            } catch (error) {
+                console.error("Error fetching doctors:", error);
+                toast.error("Failed to load doctor data.");
+            }
+        };
+
+        if (selectedDoctorEmails.length > 0) {
+            fetchDoctors();
+        }
+    }, [selectedDoctorEmails]);
+
+    const toggleSidebar = () => {
+        setIsSidebarVisible(!isSidebarVisible);
+    };
 
     const [futureAppointments, setFutureAppointments] = useState([
         {
@@ -44,41 +104,56 @@ const AppointmentBookingPatient = () => {
         }
     ]);
 
-    const doctors = [
-        {
-            id: 1,
-            name: "Dr. Emily Johnson",
-            specialty: "Cardiology",
-            experience: "15 years",
-            consultationFee: 500,
-            image: "https://randomuser.me/api/portraits/women/1.jpg",
-            availableSlots: [
-                { date: "2024-07-15", slots: ["09:00 AM", "10:30 AM", "02:00 PM"] },
-                { date: "2024-07-16", slots: ["11:00 AM", "03:30 PM", "04:45 PM"] }
-            ]
-        },
-        {
-            id: 2,
-            name: "Dr. Michael Chen",
-            specialty: "Orthopedics",
-            experience: "12 years",
-            consultationFee: 450,
-            image: "https://randomuser.me/api/portraits/men/1.jpg",
-            availableSlots: [
-                { date: "2024-07-15", slots: ["10:15 AM", "01:45 PM", "03:30 PM"] },
-                { date: "2024-07-16", slots: ["09:30 AM", "02:00 PM", "05:00 PM"] }
-            ]
+    const handleDoctorClick = async (doctor) => {
+        try {
+            // Step 1: Fetch doctor's email using the find-doctor-email endpoint
+            const emailResponse = await axios.get("http://localhost:5000/api/auth/find-doctor-email", {
+                params: {
+                    name: doctor.name,
+                    specialization: doctor.specialization,
+                    gender: doctor.gender,
+                    yearOfExperience: doctor.yearOfExperience,
+                },
+            });
+
+            const email = emailResponse.data.email; // Resolve email
+            if (!email) {
+                toast.error(`Email not found for ${doctor.name}`);
+                return;
+            }
+
+            // Step 2: Fetch available slots using resolved email
+            const response = await axios.get("http://localhost:5000/api/auth/get-data-ofslots", {
+                params: { doctorEmail: email }, // Use resolved email
+            });
+
+            const availableSlots = response.data;
+
+            if (availableSlots && availableSlots.length > 0) {
+                toast.success(`Available slots found for ${doctor.name}`);
+                globalAppointments = availableSlots; // Update the global variable
+                setAppointments(globalAppointments); // Update the state for UI
+                setShowPopup(true); // Show the popup
+
+                // Alert to show available slots
+                const slotDetails = availableSlots
+                    .map(slot => `Date: ${new Date(slot.date).toLocaleDateString()}, Time: ${slot.startTime} - ${slot.endTime}`)
+                    .join('\n');
+            } else {
+                toast.info(`No available slots for ${doctor.name}`);
+                globalAppointments = []; // Clear the global variable if no slots
+                setAppointments([]); // Clear the state for UI
+            }
+        } catch (error) {
+            console.error("Error handling doctor click:", error.response?.data || error.message);
+            toast.error("Failed to fetch details for the selected doctor.");
         }
-    ];
-
-    const [selectedDoctor, setSelectedDoctor] = useState(null);
-    const [selectedDate, setSelectedDate] = useState(null);
-    const [selectedSlot, setSelectedSlot] = useState(null);
-    const [selectedAppointment, setSelectedAppointment] = useState(null);
-
-    const toggleSidebar = () => {
-        setIsSidebarVisible(!isSidebarVisible);
     };
+
+
+
+
+
 
     const handleBooking = () => {
         if (!selectedDate || !selectedSlot) {
@@ -137,13 +212,16 @@ const AppointmentBookingPatient = () => {
                         </div>
                     </div>
                 );
-
             case "bookAppointment":
                 const filteredDoctors = doctors.filter((doctor) => {
-                    const matchesName = doctor.name.toLowerCase().includes(searchQuery.toLowerCase());
-                    const matchesGender = selectedGender ? doctor.gender === selectedGender : true;
+                    const matchesName = searchQuery
+                        ? doctor.name.toLowerCase().includes(searchQuery.toLowerCase())
+                        : true;
+                    const matchesGender = selectedGender
+                        ? doctor.gender === selectedGender
+                        : true;
                     const matchesSpecialization = selectedSpecialization
-                        ? doctor.specialty.toLowerCase() === selectedSpecialization.toLowerCase()
+                        ? doctor.specialization.toLowerCase() === selectedSpecialization.toLowerCase()
                         : true;
 
                     return matchesName && matchesGender && matchesSpecialization;
@@ -171,8 +249,8 @@ const AppointmentBookingPatient = () => {
                                         className="filter-select"
                                     >
                                         <option value="">All Genders</option>
-                                        <option value="male">Male</option>
-                                        <option value="female">Female</option>
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
                                     </select>
                                     <select
                                         value={selectedSpecialization}
@@ -180,9 +258,13 @@ const AppointmentBookingPatient = () => {
                                         className="filter-select"
                                     >
                                         <option value="">All Specializations</option>
-                                        <option value="Cardiology">Cardiology</option>
-                                        <option value="Orthopedics">Orthopedics</option>
-                                        {/* Add more specializations as needed */}
+                                        {Array.from(
+                                            new Set(doctors.map((doc) => doc.specialization))
+                                        ).map((specialization) => (
+                                            <option key={specialization} value={specialization}>
+                                                {specialization}
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
 
@@ -190,48 +272,57 @@ const AppointmentBookingPatient = () => {
                                 <div className="doctors-grid">
                                     {filteredDoctors.map((doctor) => (
                                         <div
-                                            key={doctor.id}
-                                            className={`doctor-card ${selectedDoctor?.id === doctor.id ? "selected" : ""
-                                                }`}
-                                            onClick={() => {
-                                                setSelectedDoctor(doctor);
-                                                setSelectedDate(null);
-                                                setSelectedSlot(null);
-                                            }}
+                                            key={doctor._id}
+                                            className="doctor-card"
+                                            onClick={() => handleDoctorClick(doctor)} // Attach the click handler
                                         >
                                             <div className="doctor-header">
                                                 <img
-                                                    src={doctor.image}
-                                                    alt={doctor.name}
+                                                    src={doctor.profilePicture || defaultimg}
+                                                    alt={doctor.name || "Doctor Image"}
                                                     className="doctor-image"
                                                 />
                                                 <div className="doctor-info">
                                                     <h3>{doctor.name}</h3>
-                                                    <p>{doctor.specialty}</p>
+                                                    <p>{doctor.specialization}</p>
                                                 </div>
                                             </div>
                                             <div className="doctor-details">
                                                 <div className="detail-item">
                                                     <span>Experience:</span>
-                                                    <strong>{doctor.experience}</strong>
+                                                    <strong>{doctor.yearOfExperience} years</strong>
                                                 </div>
                                                 <div className="detail-item">
                                                     <span>Consultation Fee:</span>
                                                     <strong>₹{doctor.consultationFee}</strong>
                                                 </div>
-                                                <div className="detail-item">
-                                                    <span>Rating:</span>
-                                                    <strong>{doctor.rating}/5</strong>
-                                                </div>
+                                                {doctor.services && doctor.services.length > 0 && (
+                                                    <div className="detail-item">
+                                                        <span>Services:</span>
+                                                        <strong>{doctor.services.join(", ")}</strong>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     ))}
                                 </div>
+                                {selectedDoctor && appointments.length > 0 && (
+                                    <div className="appointment-slots">
+                                        <h3>Available Slots for {selectedDoctor.name}</h3>
+                                        <ul>
+                                            {appointments.map((slot, index) => (
+                                                <li key={`${slot.date}-${slot.startTime}-${index}`}>
+                                                    <strong>Date:</strong> {new Date(slot.date).toLocaleDateString()} <br />
+                                                    <strong>Time:</strong> {slot.startTime} - {slot.endTime}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
                 );
-
 
             default:
                 return (
@@ -241,7 +332,7 @@ const AppointmentBookingPatient = () => {
                                 <h1>Appointment Management</h1>
                             </div>
                             <div className="card-body">
-                                <p>View Future Appointments or Book a New Appointment </p>
+                                <p>View Future Appointments or Book a New Appointment</p>
                             </div>
                         </div>
                     </div>
@@ -269,7 +360,133 @@ const AppointmentBookingPatient = () => {
                     </button>
                 </div>
 
-                <div className="content">{renderContent()}</div>
+                {activeView === "bookAppointment" ? (
+                    <div className="card-container">
+                        <div className="card book-appointment-card">
+                            <div className="card-header">
+                                <h2>Book New Appointment</h2>
+                            </div>
+                            <div className="card-body">
+                                {/* Search and Filter Section */}
+                                <div className="filter-container">
+                                    <input
+                                        type="text"
+                                        placeholder="Search by name..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="filter-input"
+                                    />
+                                    <select
+                                        value={selectedGender}
+                                        onChange={(e) => setSelectedGender(e.target.value)}
+                                        className="filter-select"
+                                    >
+                                        <option value="">All Genders</option>
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                    </select>
+                                    <select
+                                        value={selectedSpecialization}
+                                        onChange={(e) => setSelectedSpecialization(e.target.value)}
+                                        className="filter-select"
+                                    >
+                                        <option value="">All Specializations</option>
+                                        {Array.from(
+                                            new Set(doctors.map((doc) => doc.specialization))
+                                        ).map((specialization) => (
+                                            <option key={specialization} value={specialization}>
+                                                {specialization}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Doctors Grid */}
+                                <div className="doctors-grid" >
+                                    {doctors
+                                        .filter((doctor) => {
+                                            const matchesName = searchQuery
+                                                ? doctor.name.toLowerCase().includes(searchQuery.toLowerCase())
+                                                : true;
+                                            const matchesGender = selectedGender
+                                                ? doctor.gender === selectedGender
+                                                : true;
+                                            const matchesSpecialization = selectedSpecialization
+                                                ? doctor.specialization.toLowerCase() === selectedSpecialization.toLowerCase()
+                                                : true;
+
+                                            return matchesName && matchesGender && matchesSpecialization;
+                                        })
+                                        .map((doctor) => (
+                                            <div
+                                                key={doctor._id}
+                                                className="doctor-card"
+                                                onClick={() => handleDoctorClick(doctor)}
+                                            >
+                                                <div className="doctor-header">
+                                                    <img
+                                                        src={doctor.profilePicture || defaultimg}
+                                                        alt={doctor.name || "Doctor Image"}
+                                                        className="doctor-image"
+                                                    />
+                                                    <div className="doctor-info">
+                                                        <h3>{doctor.name}</h3>
+                                                        <p>{doctor.specialization}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="doctor-details">
+                                                    <div className="detail-item">
+                                                        <span>Experience:</span>
+                                                        <strong>{doctor.yearOfExperience} years</strong>
+                                                    </div>
+                                                    <div className="detail-item">
+                                                        <span>Consultation Fee:</span>
+                                                        <strong>₹{doctor.consultationFee}</strong>
+                                                    </div>
+                                                    {doctor.services && doctor.services.length > 0 && (
+                                                        <div className="detail-item">
+                                                            <span>Services:</span>
+                                                            <strong>{doctor.services.join(', ')}</strong>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="content">{renderContent()}</div>
+                )}
+                {showPopup && (
+                    <div className="popup-overlay">
+                        <div className="popup-card">
+                            <button className="close-button" onClick={() => setShowPopup(false)}>×</button>
+                            <h2>Available Slots</h2>
+                            <ul className="appointment-list">
+                                {appointments.map((slot, index) => (
+                                    <li
+                                        key={index}
+                                        className={`appointment-item ${selectedSlot === index ? "selected" : ""}`}
+                                        onClick={() => setSelectedSlot(index)}
+                                    >
+                                        Date: {new Date(slot.date).toLocaleDateString()}, Time: {slot.startTime} - {slot.endTime}
+                                    </li>
+                                ))}
+                            </ul>
+                            <button
+                                className="book-appointment-btn"
+                                disabled={selectedSlot === null}
+                            // onClick={() => handleBookAppointment(appointments[selectedSlot])}
+                            >
+                                Book Appointment
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+
 
                 {/* Enhanced Appointment Details Modal */}
                 {selectedAppointment && (
