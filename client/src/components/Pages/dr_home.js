@@ -143,7 +143,7 @@ const DoctorProfile = ({ isSidebarVisible, toggleSidebar }) => {
                         <h3>
                             {isEditMode ? (
                                 <>
-                                    <h4>Full Name</h4>
+                                    <h5>Full Name</h5>
                                     <input
                                         type="text"
                                         name="name"
@@ -156,7 +156,7 @@ const DoctorProfile = ({ isSidebarVisible, toggleSidebar }) => {
                                 profileData.name
                             )}
                         </h3>
-                        <h4>Specialization</h4>
+                        <h5><b>Specialization</b></h5>
                         <p>
                             {isEditMode ? (
                                 <input
@@ -170,7 +170,7 @@ const DoctorProfile = ({ isSidebarVisible, toggleSidebar }) => {
                                 profileData.specialization
                             )}
                         </p>
-                        <h4>Medical Education</h4>
+                        <h5><b>Medical Education</b></h5>
                         <p>
                             {isEditMode ? (
                                 <input
@@ -184,7 +184,7 @@ const DoctorProfile = ({ isSidebarVisible, toggleSidebar }) => {
                                 profileData.education
                             )}
                         </p>
-                        <h4>Gender</h4>
+                        <h5><b>Gender</b></h5>
                         <p>
                             {isEditMode ? (
                                 <select
@@ -201,7 +201,7 @@ const DoctorProfile = ({ isSidebarVisible, toggleSidebar }) => {
                                 profileData.gender
                             )}
                         </p>
-                        <h4>Years of Experience</h4>
+                        <h5><b>Years of Experience</b></h5>
                         <p>
                             {isEditMode ? (
                                 <input
@@ -217,7 +217,7 @@ const DoctorProfile = ({ isSidebarVisible, toggleSidebar }) => {
                             )}
                         </p>
 
-                        <h4>Consultation Fee</h4>
+                        <h5><b>Consultation Fee</b></h5>
                         <p>
                             {isEditMode ? (
                                 <input
@@ -232,7 +232,7 @@ const DoctorProfile = ({ isSidebarVisible, toggleSidebar }) => {
                                 `Rs. ${profileData.consultationFee}`
                             )}
                         </p>
-                        <h4>Services</h4>
+                        <h5><b>Services</b></h5>
                         <ul>
                             {profileData.services.map((service, index) => (
                                 <li key={index}>

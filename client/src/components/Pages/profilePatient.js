@@ -59,6 +59,17 @@ const ProfilePatient = ({ isSidebarVisible }) => {
         if (new Date(profileData.dob) >= today) {
             newErrors.dob = "Date of Birth must be in the past.";
         }
+        const enteredDOB = new Date(profileData.dob);
+        const enteredAge = parseInt(profileData.age, 10);
+        const calculatedAge = today.getFullYear() - enteredDOB.getFullYear();
+        const birthdayThisYear = new Date(today.getFullYear(), enteredDOB.getMonth(), enteredDOB.getDate());
+
+        // Check if the birthday has passed this year
+        const adjustedAge = today < birthdayThisYear ? calculatedAge - 1 : calculatedAge;
+
+        if (adjustedAge !== enteredAge) {
+            newErrors.dob = "Age and DOB do not match.";
+        }
         if (profileData.age < 0) {
             newErrors.age = "Age cannot be negative.";
         }

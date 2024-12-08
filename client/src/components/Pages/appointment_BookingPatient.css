@@ -39,14 +39,6 @@
     color: var(--text-color);
 }
 
-.sidebar-visible {
-    padding-left: 270px;
-}
-
-.sidebar-hidden {
-    padding-left: 0;
-}
-
 .main-content {
     flex: 1;
     padding: 20px;
@@ -601,4 +593,29 @@ li.appointment-item.selected {
 .popup-card::-webkit-scrollbar-thumb:hover {
     background: #aaa;
     /* Color when hovered */
+}
+
+.doc-home-container.sidebar-hidden .main-content {
+    width: 100%;
+    /* Take full width when sidebar is hidden */
+    padding: 20px;
+    /* Optional: Adjust padding as needed */
+    transition: all 0.3s ease-in-out;
+    /* Smooth transition for width adjustment */
+}
+
+.doc-home-container:not(.sidebar-hidden) .main-content {
+    width: calc(100% - 250px);
+    /* Adjust to leave space for the sidebar (assume sidebar width is 250px) */
+    transition: all 0.3s ease-in-out;
+}
+
+.doc-home-container.sidebar-hidden .action-btn {
+    max-width: 300px;
+    /* Increase button width */
+}
+
+.doc-home-container.sidebar-hidden .card {
+    max-width: 80%;
+    /* Expand card to full width */
 }

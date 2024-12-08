@@ -2,23 +2,19 @@ import React, { useState, useEffect } from "react";
 import "./appointment_BookingPatient.css";
 import axios from "axios";
 import defaultimg from "../../assets/images/image.jpg"
-import SidebarPatient from "./sidebarPatient";
-import { v4 as uuidv4 } from "uuid";
 import { useAuth } from "../../context/AuthContext";
-import { toast } from "react-toastify";
+import { ToastContainer, toast } from "react-toastify";
+import bg from "../../assets/images/patinet_bg.avif"
+import "react-toastify/dist/ReactToastify.css"; // Import CSS for the toasts
 import {
     Calendar,
     Clock,
     User,
-    Stethoscope,
-    InfoIcon,
-    XCircle
 } from "lucide-react";
-import app from "../firebase";
 let globalAppointments = [];
 
 
-const AppointmentBookingPatient = () => {
+const AppointmentBookingPatient = ({ isSidebarVisible }) => {
     const { email } = useAuth();
     const [selectedAppointment, setSelectedAppointment] = useState(null);
 
@@ -32,7 +28,6 @@ const AppointmentBookingPatient = () => {
     const [selectedDate, setSelectedDate] = useState(null);
     const [selectedSlot, setSelectedSlot] = useState(null);
 
-    const [isSidebarVisible, setIsSidebarVisible] = useState(true);
     const [activeView, setActiveView] = useState(null);
     const [doctors, setDoctors] = useState([]);
     const [selectedDoctorEmails, setSelectedDoctorEmails] = useState([]);
@@ -135,7 +130,6 @@ const AppointmentBookingPatient = () => {
 
             // Show success message if cancellation is successful
             toast.success(response.data.message);
-            alert(response.data.message)
 
             // Remove the canceled appointment from the state
             setAppointments((prevAppointments) =>
@@ -143,40 +137,12 @@ const AppointmentBookingPatient = () => {
             );
         } catch (error) {
             console.error("Error cancelling appointment:", error.response?.data || error.message);
-            alert("Error cancelling appointment:" || error.response?.data || error.message);
+            toast.error("Error cancelling appointment:" || error.response?.data || error.message);
 
             // Show error message if within 24-hour window or other issues
             toast.error(error.response?.data?.error || "Failed to cancel appointment.");
-            alert(error.response?.data?.error || "Failed to cancel appointment.")
         }
     };
-
-
-
-    const toggleSidebar = () => {
-        setIsSidebarVisible(!isSidebarVisible);
-    };
-
-    const [futureAppointments, setFutureAppointments] = useState([
-        {
-            id: uuidv4(),
-            doctorName: "Dr. Emily Johnson",
-            specialty: "Cardiology",
-            date: "2024-07-15",
-            time: "10:30 AM",
-            status: "Confirmed",
-            consultationFee: 500
-        },
-        {
-            id: uuidv4(),
-            doctorName: "Dr. Michael Chen",
-            specialty: "Orthopedics",
-            date: "2024-08-02",
-            time: "02:45 PM",
-            status: "Pending",
-            consultationFee: 450
-        }
-    ]);
 
 
     const handleBookAppointment = async () => {
@@ -233,7 +199,6 @@ const AppointmentBookingPatient = () => {
 
             // Show success message
             toast.success(response.data.message);
-            alert(response.data.message);
 
             // Update the state of appointments
             setAppointments((prevAppointments) =>
@@ -251,7 +216,6 @@ const AppointmentBookingPatient = () => {
             // Handle errors and show appropriate messages
             console.error("Error rescheduling appointment:", error.response?.data || error.message);
             toast.error(error.response?.data?.error || "Failed to reschedule appointment.");
-            alert(error.response?.data?.error || "Failed to reschedule appointment.");
         }
     };
 
@@ -290,7 +254,6 @@ const AppointmentBookingPatient = () => {
                 setAppointments(globalAppointments); // Update the state for UI
                 setShowPopup(true); // Show the popup
 
-                // Alert to show available slots
                 const slotDetails = availableSlots
                     .map(slot => `Date: ${new Date(slot.date).toLocaleDateString()}, Time: ${slot.startTime} - ${slot.endTime}`)
                     .join('\n');
@@ -473,10 +436,27 @@ const AppointmentBookingPatient = () => {
     };
 
     return (
-        <div className={`doc-home-container ${isSidebarVisible ? "sidebar-visible" : "sidebar-hidden"}`}>
-            <SidebarPatient isSidebarVisible={isSidebarVisible} toggleSidebar={toggleSidebar} />
+        <div
+            className={`doc-home-container ${isSidebarVisible ? "" : "sidebar-hidden"}`}
+            style={{
+                backgroundImage: `url(${bg})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                backgroundRepeat: "no-repeat",
+            }}
+        >
 
             <div className="main-content">
+                <ToastContainer
+                    position="top-right" // Position at the top-right
+                    autoClose={8000} // Toast stays for 8 seconds
+                    closeOnClick={false} // Clicking on the toast does not close it
+                    hideProgressBar={false} // Show the progress bar
+                    newestOnTop={true} // Display the newest toast on top
+                    draggable={true} // Allow dragging to close the toast
+                    closeButton // Show a close button
+                    pauseOnHover={true} // Pause timeout on hover
+                />
                 <div className="action-buttons">
                     <button
                         className={`action-btn ${activeView === "futureAppointments" ? "active" : ""}`}
@@ -613,7 +593,7 @@ const AppointmentBookingPatient = () => {
                                 onClick={() => {
                                     handleBookAppointment(); // Book the appointment
                                     setShowPopup(false); // Close the popup after booking
-                                    alert("Your appointment has been booked successfully!"); // Show success message
+                                    toast.success("Your appointment has been booked successfully!")// Show success message
                                     setTimeout(() => {
                                         window.location.reload(); // Refresh the page after booking
                                     }, 500); // Add a short delay to ensure the booking process completes
@@ -687,7 +667,6 @@ const AppointmentBookingPatient = () => {
                                         className="modal-action-btn"
                                         onClick={() => {
                                             handleRescheduleAppointment(selectedAppointment._id);
-                                            alert(selectedAppointment.patientEmail || "email")
                                         }}
                                     >
                                         Reschedule

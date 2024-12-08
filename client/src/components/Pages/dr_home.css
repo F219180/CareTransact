@@ -240,9 +240,8 @@ body {
     /* Increased width */
     height: 30px;
     /* Increased height for better appearance */
-    background-color: #002d5b;
     /* Dark blue */
-    color: #ffffff;
+    color: #000000;
     /* White text */
     border: none;
     /* Remove border */
@@ -255,6 +254,7 @@ body {
     transition: all 0.3s ease;
     text-align: center;
     line-height: 30px;
+    background: transparent;
 }
 
 /* Space between the Plus and Minus Buttons */
