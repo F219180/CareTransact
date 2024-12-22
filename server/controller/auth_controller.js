@@ -464,6 +464,19 @@ const checkUserType = async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 };
+const fetchFuturePendingAndConfirm = async () => {
+    try {
+        const response = await axios.get("http://localhost:5000/api/auth/get-future-pending-and-confirm", {
+            params: { email },
+        });
+
+        setAppointments(response.data); // Update state with the fetched appointments
+    } catch (error) {
+        console.error("Error fetching future appointments:", error.response?.data || error.message);
+        toast.error("Failed to fetch future appointments.");
+    }
+};
+
 
 
 
@@ -499,8 +512,9 @@ const getDoctorAppointments = async (req, res) => {
 };
 const updateAppointmentStatus = async (req, res) => {
     try {
-        console.log("in auth controller.js updateAppointmentStatus");
-        const { appointmentId, status, patientName, patientEmail } = req.body;
+        console.log("Request received for updating appointment status:", req.body);
+
+        const { appointmentId, status } = req.body;
 
         if (!appointmentId || !status) {
             return res.status(400).json({ error: 'Appointment ID and status are required.' });
@@ -508,28 +522,59 @@ const updateAppointmentStatus = async (req, res) => {
 
         const updateFields = { status };
 
-        // Clear patient details if the status is 'Available'
-        if (status === 'Available') {
-            updateFields.patientName = patientName || null;
-            updateFields.patientEmail = patientEmail || null;
-        }
-
         const updatedAppointment = await Appointment.findByIdAndUpdate(
             appointmentId,
             updateFields,
-            { new: true }
+            { new: true } // Return the updated document
         );
 
         if (!updatedAppointment) {
             return res.status(404).json({ error: 'Appointment not found.' });
         }
 
-        res.status(200).json({ message: 'Appointment updated successfully.', appointment: updatedAppointment });
+        console.log("Updated Appointment:", updatedAppointment);
+
+        res.status(200).json({
+            message: 'Appointment updated successfully.',
+            appointment: updatedAppointment,
+        });
     } catch (error) {
-        console.error('Error updating appointment status:', error);
+        console.error("Error updating appointment status:", error);
         res.status(500).json({ error: 'Internal server error.' });
     }
 };
+
+const getFuturePendingAndConfirmAppointments = async (req, res) => {
+    try {
+        console.log("Request Params:", req.query); // Debug
+        const { email } = req.query;
+
+        if (!email) {
+            return res.status(400).json({ error: "Patient email is required." });
+        }
+
+        const today = new Date();
+
+        // Fetch appointments
+        const appointments = await Appointment.find({
+            patientEmail: email,
+            date: { $gte: today },
+            status: { $in: ["Pending", "Confirmed"] },
+        });
+
+        console.log("Fetched Appointments:", appointments); // Debug
+
+        if (!appointments || appointments.length === 0) {
+            return res.status(404).json({ message: "No future appointments found." });
+        }
+
+        res.status(200).json(appointments);
+    } catch (error) {
+        console.error("Error fetching future appointments:", error);
+        res.status(500).json({ error: "Internal server error." });
+    }
+};
+
 
 
 module.exports = {
@@ -553,5 +598,6 @@ module.exports = {
     rescheduleAppointment,
     checkUserType,
     getDoctorAppointments,
-    updateAppointmentStatus
+    updateAppointmentStatus,
+    getFuturePendingAndConfirmAppointments
 };

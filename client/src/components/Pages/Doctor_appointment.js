@@ -215,23 +215,6 @@ const DoctorAppointmentDashboard = ({ isSidebarVisible }) => {
         }
     };
 
-    const handleReject = async (appointment) => {
-        try {
-            const response = await axios.put('http://localhost:5000/api/auth/update-appointment-status', {
-                appointmentId: appointment._id,
-                status: 'Available',
-                patientName: null,
-                patientEmail: null,
-            });
-
-            if (response.status === 200) {
-                // Remove from pending appointments
-                setPendingAppointments((prev) => prev.filter((a) => a._id !== appointment._id));
-            }
-        } catch (error) {
-            console.error('Error rejecting appointment:', error);
-        }
-    };
 
 
 
@@ -280,43 +263,97 @@ const DoctorAppointmentDashboard = ({ isSidebarVisible }) => {
         }
     }, [futureAppointments]);
 
+    const fetchAppointments = async () => {
+        try {
+            const response = await axios.get('http://localhost:5000/api/auth/get-doctor-appointments', {
+                params: { doctorEmail: email },
+            });
+
+            const { pendingAppointments, futureAppointments } = response.data;
+
+            // Update the states for pending and future appointments
+            setPendingAppointments(
+                pendingAppointments.filter((appt) => appt.status === "Pending")
+            );
+
+            setFutureAppointments(
+                futureAppointments.filter((appt) => appt.status === "Confirmed")
+            );
+        } catch (error) {
+            console.error("Error fetching appointments:", error);
+        }
+    };
 
     const handleAppointmentAccept = async (appointment) => {
         try {
-            alert(appointment.doctorEmail)
-            // Update the appointment status in the backend
             const response = await axios.put('http://localhost:5000/api/auth/update-appointment-status', {
                 appointmentId: appointment._id,
                 status: 'Confirmed',
             });
 
             if (response.status === 200) {
-                // Remove accepted appointment from pending appointments
-                setPendingAppointments(pendingAppointments.filter(appt => appt.id !== appointment.id));
-
-                // Add accepted appointment to future appointments
-                const acceptedAppointment = { ...appointment, isAccepted: true };
-                setFutureAppointments(prevAppointments => [...prevAppointments, acceptedAppointment]);
-
-                // Add the accepted appointment to the calendar
-                const newCalendarEvent = {
-                    title: `${appointment.patientName} - ${appointment.reason}`,
-                    start: new Date(`${appointment.date} ${appointment.time}`),
-                    end: moment(new Date(`${appointment.date} ${appointment.time}`)).add(1, 'hour').toDate(),
-                    type: 'appointment'
-                };
-                setCalendarEvents(prevEvents => [...prevEvents, newCalendarEvent]);
+                // Fetch updated pending and future appointments
+                fetchAppointments();
                 alert("Appointment accepted successfully!");
             } else {
                 alert("Failed to accept appointment. Please try again.");
             }
         } catch (error) {
-            console.error(error);
+            console.error("Error accepting appointment:", error.response?.data || error.message);
             alert("Failed to accept appointment. Please try again.");
         }
     };
 
+    const handleReject = async (appointment) => {
+        try {
+            const response = await axios.put('http://localhost:5000/api/auth/update-appointment-status', {
+                appointmentId: appointment._id,
+                status: 'Available',
+            });
 
+            if (response.status === 200) {
+                // Fetch updated pending and future appointments
+                fetchAppointments();
+                alert("Appointment rejected successfully!");
+            } else {
+                alert("Failed to reject appointment. Please try again.");
+            }
+        } catch (error) {
+            console.error("Error rejecting appointment:", error.response?.data || error.message);
+            alert("Failed to reject appointment. Please try again.");
+        }
+    };
+
+    // Initial fetch for appointments
+    useEffect(() => {
+        if (email) {
+            fetchAppointments();
+        }
+    }, [email]);
+
+    const fetchFutureAppointments = async () => {
+        try {
+            const response = await axios.get('http://localhost:5000/api/auth/get-doctor-appointments', {
+                params: { doctorEmail: email },
+            });
+
+            const { futureAppointments } = response.data;
+
+            // Filter future appointments with status = Confirmed
+            setFutureAppointments(
+                futureAppointments.filter((appt) => appt.status === "Confirmed")
+            );
+        } catch (error) {
+            console.error("Error fetching future appointments:", error);
+        }
+    };
+
+    // Call `fetchFutureAppointments` initially to populate future appointments
+    useEffect(() => {
+        if (email) {
+            fetchFutureAppointments();
+        }
+    }, [email]);
 
     // Calendar navigation handlers
     const handlePreviousMonth = () => {

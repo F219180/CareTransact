@@ -2,7 +2,7 @@ nodemailer = require('nodemailer');
 const connectDB = require('../utils/db');
 const mongoose = require('mongoose');
 require('dotenv').config();
-let count=0;
+let count = 0;
 
 // Ensure the Appointment model is only defined once
 const Appointment = mongoose.models.Appointment || mongoose.model('Appointment', new mongoose.Schema({
@@ -16,7 +16,7 @@ const Appointment = mongoose.models.Appointment || mongoose.model('Appointment',
     endTime: { type: String, required: true },   // Format: HH:mm
     status: {
         type: String,
-        enum: ['Pending', 'Available', 'Confirm', 'Completed', 'Cancelled'],
+        enum: ['Pending', 'Available', 'Confirmed', 'Completed', 'Cancelled'],
         default: 'Pending'
     },
     consultationFee: { type: Number, default: 0 }
@@ -41,10 +41,10 @@ const checkAppointmentsAndSendEmails = async () => {
 
         const now = new Date();
         console.log('System time:', now.toString());  // Log system time
-        
+
         // Loop through appointments
         const upcomingAppointments = await Appointment.find({
-            status: 'Confirm',  // Only consider confirmed appointments
+            status: 'Confirmed',  // Only consider confirmed appointments
         });
 
         for (const appointment of upcomingAppointments) {
@@ -65,7 +65,7 @@ const checkAppointmentsAndSendEmails = async () => {
             if (Math.abs(timeDifferenceInHours - 24) < 0.01) {  // Allow a small tolerance for floating point precision
                 // Time is exactly 24 hours ahead of now, send the email
                 console.log('Time difference is exactly 24 hours, sending reminder email...');
-                
+
                 const appointmentTime = `${appointment.startTime} to ${appointment.endTime}`;
                 const mailOptions = {
                     from: process.env.EMAIL_USER,

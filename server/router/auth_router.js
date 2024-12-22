@@ -18,6 +18,7 @@ router.get('/get-doctor-appointments', controllers.getDoctorAppointments);
 router.put('/update-appointment-status', controllers.updateAppointmentStatus);
 
 
+
 //Auth Appointment
 router.post('/save-appointment-slot', controllers.saveAppointmentSlot);
 router.get('/get-available-slots', controllers.getAvailableSlots);
@@ -34,6 +35,9 @@ router.get('/get-patient-appointments', controllers.getPatientAppointments);
 router.get('/get-future-appointments', controllers.getFutureAppointments);
 router.post('/cancel-appointment', controllers.cancelAppointment);
 router.post('/reschedule-appointment', controllers.rescheduleAppointment);
+
+router.get('/get-future-pending-and-confirm', controllers.getFuturePendingAndConfirmAppointments);
+
 
 
 
