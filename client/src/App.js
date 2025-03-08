@@ -15,6 +15,13 @@ import { AuthProvider } from './context/AuthContext';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import ForgotPassword from './components/Pages/forget_password';
+import AdminDashboard from './components/Pages/admin';
+import PharmacistDashboard from "./components/Pages/pharma";
+import LabAttendentDashboard from "./components/Pages/lab";
+import InsuranceDashboard from "./components/Pages/insurance";
+import DoctorPrescription from "./components/Pages/doctor_prescription";
+import DoctorMedicalRecords from "./components/Pages/doctor_medical_record";
+import PatientPrescription from "./components/Pages/patient_medical_record";
 
 const App = () => {
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
@@ -70,8 +77,15 @@ const App = () => {
             <Route path="/landingpage" element={<LP />} />
             <Route path="/Header" element={<Header />} />
             <Route path="/Footer" element={<Footer />} />
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/pharmacist-dashboard" element={<PharmacistDashboard />} />
+            <Route path="/lab-attendee-dashboard" element={<LabAttendentDashboard />} />
+            <Route path="/insurance-dashboard" element={<InsuranceDashboard />} />
             <Route path="/Doctor" element={<DrHome isSidebarVisible={isSidebarVisible} />} />
+            <Route path="/prescriptions" element={<DoctorPrescription isSidebarVisible={isSidebarVisible} />} />
+            <Route path="/medical-records" element={<DoctorMedicalRecords isSidebarVisible={isSidebarVisible} />} />
             <Route path="/profilePatient" element={<ProfilePatient isSidebarVisible={isSidebarVisible} />} />
+            <Route path="/patient-medical-record" element={<PatientPrescription isSidebarVisible={isSidebarVisible} />} />
             <Route path="/Doctor_appointment" element={<AppointmentManagementCard isSidebarVisible={isSidebarVisible} />} />
             <Route path="/appointment_BookingPatient" element={<AppointmentBookingPatient isSidebarVisible={isSidebarVisible} />} />
 

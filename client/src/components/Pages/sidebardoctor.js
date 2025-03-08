@@ -20,7 +20,7 @@ const Sidebardoctor = ({ isSidebarVisible, toggleSidebar }) => {
                     <li><Link to="/Doctor">Home</Link></li>
                     <li><Link to="/Doctor_appointment">Appointment Slots</Link></li>
                     <li><Link to="/prescriptions">Prescription</Link></li>
-                    <li><Link to="/lab-results">Lab Results</Link></li>
+                    <li><Link to="/medical-records">Medical Record</Link></li>
                     <li><Link to="/reports">Reports</Link></li>
                     <li><Link to="/reports">Patients</Link></li>
                     <li className="logout">

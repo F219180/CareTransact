@@ -1,0 +1,51 @@
+Complete Blood Count (CBC)
+Liver Function Test (LFT)
+Kidney Function Test (KFT)
+Lipid Profile
+Blood Glucose Test
+Thyroid Function Test (TFT)
+Hemoglobin A1c (HbA1c)
+Urine Routine Examination
+Electrolyte Panel
+C-Reactive Protein (CRP)
+Erythrocyte Sedimentation Rate (ESR)
+Coagulation Profile (PT, APTT, INR)
+Vitamin D Test
+Vitamin B12 Test
+Calcium Test
+Iron Studies (Iron, TIBC, Ferritin)
+Hepatitis Panel (HAV, HBV, HCV)
+HIV Test (ELISA, Western Blot)
+COVID-19 PCR Test
+Dengue NS1 Antigen Test
+Malaria Parasite Smear
+Tuberculosis (TB) Test (Mantoux, IGRA)
+Syphilis Test (VDRL, TPHA)
+Blood Culture Test
+Urine Culture Test
+Sputum Culture Test
+Widal Test (Typhoid Test)
+Stool Routine Examination
+H. Pylori Test (Urea Breath, Stool Antigen)
+Pap Smear (Cervical Cancer Screening)
+PSA Test (Prostate-Specific Antigen)
+Mammography (Breast Cancer Screening)
+X-ray
+Ultrasound
+CT Scan
+MRI Scan
+Echo Cardiogram (ECHO)
+Electrocardiogram (ECG)
+Holter Monitor Test
+Pulmonary Function Test (PFT)
+Allergy Panel Test
+Autoimmune Disease Panel
+Rheumatoid Factor (RF) Test
+ANA Test (Antinuclear Antibody)
+Celiac Disease Panel
+Bone Marrow Aspiration
+Blood Group & Rh Typing
+Pregnancy Test (Urine hCG, Blood hCG)
+Genetic Testing (BRCA, Karyotype, etc.)
+Drug Screening Test
+Lead Poisoning Test

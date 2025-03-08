@@ -22,7 +22,7 @@ const SidebarPatient = ({ isSidebarVisible, toggleSidebar }) => {
                 <ul className="sidebar-menu">
                     <li><Link to="/profilePatient">Home</Link></li>
                     <li><Link to="/appointment_BookingPatient">Appointment Booking</Link></li>
-                    <li><Link to="/prescriptions">Prescription</Link></li>
+                    <li><Link to="/patient-medical-record">Prescription</Link></li>
                     <li><Link to="/lab-results">Lab Results</Link></li>
                     <li><Link to="/reports">Reports</Link></li>
                     <li className="logout">

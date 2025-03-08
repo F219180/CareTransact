@@ -48,9 +48,152 @@ const appointmentSchema = new mongoose.Schema({
     consultationFee: { type: Number, default: 0 }, // Added consultation fee field
 });
 
+const adminSchema = new mongoose.Schema({
+    email: { type: String, required: true, unique: true },
+    name: { type: String, required: true },
+    mainAdmin: { type: Boolean, default: false } // Flag to indicate if this is the main admin
+});
+
+const claimSchema = new mongoose.Schema({
+    doctorEmail: { type: String, required: true },
+    doctorName: { type: String, required: true },
+    doctorFee: { type: Number, required: true },
+    patientEmail: { type: String, required: true },
+    patientName: { type: String, required: true },
+
+    // Consultancy details
+    consultancyDate: { type: Date, required: true },
+    consultancyStartTime: { type: String, required: true },
+    consultancyEndTime: { type: String, required: true },
+
+    // Insurance details
+    insuranceCompanyEmail: { type: String, required: true }, // NEW FIELD
+    insuranceCardFront: { type: String, required: true },
+    insuranceCardBack: { type: String, required: true },
+
+    // Medicines
+    medicines: [{
+        name: { type: String },
+        fee: { type: Number }
+    }],
+
+    // Lab Tests
+    labTests: [{
+        testName: { type: String },
+        testFee: { type: Number },
+        labAttendeeEmail: { type: String, default: null },
+        testDate: { type: Date, default: null },
+        time: { type: String, default: null },
+    }],
+
+    pharmacistEmail: { type: String, default: null }
+});
+
+const prescriptionSchema = new mongoose.Schema({
+    patientEmail: { type: String, required: true },
+    doctorEmail: { type: String, required: true },
+    dateIssued: { type: Date, required: true, default: Date.now },
+
+    // Patient Information
+    patientAge: { type: Number, required: true },
+    patientGender: { type: String, enum: ["Male", "Female", "Other"], required: true },
+
+    // Diagnosis Section
+    diagnosis: { type: String, required: true },
+
+    // Symptoms List (Multiple Symptoms Allowed)
+    symptoms: { type: [String], default: [] },
+
+    // Medications List (Supports Name, Dosage, Frequency, and Duration)
+    medicines: {
+        type: [{
+            name: { type: String, required: true },
+            dosage: { type: String, required: true }, // e.g., "500mg"
+            frequency: { type: String, required: true }, // e.g., "Twice daily"
+            duration: { type: String, required: true } // e.g., "7 days"
+        }],
+        default: [] // Allow null by defaulting to an empty array
+    },
+
+    // Lab Tests List (Includes Name Only)
+    labTests: {
+        type: [{
+            testName: { type: String, required: true } // Only testName is required
+        }],
+        default: [] // Allow null by defaulting to an empty array
+    },
+
+    // Additional Advice Section
+    advice: { type: String, default: "" },
+
+    // Follow-up Section
+    followUpDate: { type: Date, default: null },
+
+    // Timestamps for Record Keeping
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now }
+});
+
+
+
+
+const labAttendeeSchema = new mongoose.Schema({
+    email: { type: String, required: true, unique: true },
+    name: { type: String, required: true }
+}, { collection: 'labAttendee' });
+
+const pharmacistSchema = new mongoose.Schema({
+    email: { type: String, required: true, unique: true },
+    name: { type: String, required: true }
+}, { collection: 'pharmacist' }); // Ensures only one document exists
+
+const labTestSchema = new mongoose.Schema({
+    prescriptionId: { type: mongoose.Schema.Types.ObjectId, ref: "Prescription", required: true },
+    labTests: [{
+        testName: { type: String, required: true },
+        status: { type: String, enum: ['Pending', 'Processing', 'Completed', 'Rejected'], default: 'Pending' }
+    }],
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now }
+}, { collection: 'labTests' });
+
+
+const medicineSchema = new mongoose.Schema({
+    prescriptionId: { type: mongoose.Schema.Types.ObjectId, ref: "Prescription", required: true },
+    medicines: [{
+        medicineName: { type: String, required: true },
+        dosage: { type: String, required: true }, // Example: "1 tablet twice a day"
+        duration: { type: String, required: true }, // Example: "5 days"
+        status: { type: String, enum: ['Pending', 'Provided'], default: 'Pending' }, // Status of medicine dispensing
+    }],
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now }
+}, { collection: 'medicines' });
+
+const insuranceCompanySchema = new mongoose.Schema({
+    name: { type: String, required: true, unique: true }, // Official Name
+    email: { type: String, required: true, unique: true }, // Official Contact Email
+    contactNumber: { type: String }, // Customer Support Number
+    address: { type: String }, // Office Address
+    registrationNumber: { type: String, unique: true }, // ✅ Government Legal Registration Number
+    regulatoryAuthority: { type: String }, // ✅ Issuing authority (e.g., SECP, FCA)
+    logo: { type: String, default: "" }, // ✅ URL of the company logo
+    services: { type: [String], default: [] }, // ✅ List of services offered (e.g., Health, Auto, Travel Insurance)
+}, { collection: 'insuranceCompanies' });
+
+
 // Exporting Models
 const Doctor = mongoose.model('Doctor', doctorSchema);
 const Patient = mongoose.model('Patient', patientSchema);
 const Appointment = mongoose.model('Appointment', appointmentSchema);
+const Admin = mongoose.model('Admin', adminSchema);
+const Claim = mongoose.model('Claim', claimSchema);
+const Prescription = mongoose.model('Prescription', prescriptionSchema);
+const LabAttendee = mongoose.model('LabAttendee', labAttendeeSchema);
+const Pharmacist = mongoose.model('Pharmacist', pharmacistSchema);
+const LabTest = mongoose.model('LabTest', labTestSchema);
+const Medicine = mongoose.model('Medicine', medicineSchema);
+const InsuranceCompany = mongoose.model('InsuranceCompany', insuranceCompanySchema);
 
-module.exports = { Doctor, Patient, Appointment };
+
+module.exports = { Doctor, Patient, Appointment, Admin, Claim, Prescription, LabAttendee, Pharmacist, LabTest, Medicine, InsuranceCompany };

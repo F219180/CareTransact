@@ -1,4 +1,5 @@
-const { Doctor, Patient, Appointment } = require('../models/user_models');
+const { Doctor, Patient, Appointment, Admin, Claim, Prescription, LabAttendee, Pharmacist, LabTest, Medicine, InsuranceCompany } = require('../models/user_models');
+
 
 // Patient Controllers
 const addPatient = async (req, res) => {
@@ -12,6 +13,9 @@ const addPatient = async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 };
+
+
+
 
 const getPatientDetails = async (req, res) => {
     try {
@@ -109,8 +113,6 @@ const updateDoctor = async (req, res) => {
     }
 };
 
-
-//Appointment Controller
 const saveAppointmentSlot = async (req, res) => {
     try {
         const { doctorEmail, date, startTime, endTime } = req.body;
@@ -126,17 +128,33 @@ const saveAppointmentSlot = async (req, res) => {
             return res.status(404).json({ error: "Doctor not found." });
         }
 
-        const { name: doctorName, consultationFee } = doctor;
+        // Convert time to comparable format
+        const start = new Date(`${date}T${startTime}:00`);
+        const end = new Date(`${date}T${endTime}:00`);
+
+        // Check for overlapping slots
+        const overlappingSlot = await Appointment.findOne({
+            doctorEmail,
+            date,
+            $or: [
+                { startTime: { $lt: endTime }, endTime: { $gt: startTime } }, // Overlaps
+                { startTime: { $eq: startTime }, endTime: { $eq: endTime } }, // Exact match
+            ],
+        });
+
+        if (overlappingSlot) {
+            return res.status(400).json({ error: "This time slot overlaps with an existing appointment." });
+        }
 
         // Create and save the appointment
         const newAppointment = new Appointment({
             doctorEmail,
-            doctorName,
+            doctorName: doctor.name,
             date,
             startTime,
             endTime,
-            consultationFee,
-            status: "Available", // Status is available for now
+            consultationFee: doctor.consultationFee,
+            status: "Available",
         });
 
         await newAppointment.save();
@@ -150,6 +168,7 @@ const saveAppointmentSlot = async (req, res) => {
         res.status(500).json({ error: "Internal server error." });
     }
 };
+
 
 const getAvailableSlots = async (req, res) => {
     try {
@@ -184,6 +203,8 @@ const removeExpiredSlots = async () => {
         console.error("Error removing expired slots:", error);
     }
 };
+
+
 const removePastAppointments = async (req, res) => {
     try {
         const now = new Date(); // Current date and time
@@ -444,26 +465,57 @@ const rescheduleAppointment = async (req, res) => {
 
 
 
-
-
-
 const checkUserType = async (req, res) => {
     try {
         const { email } = req.body;
+
+        // Check if the user is an Admin
+        const admin = await Admin.findOne({ email });
+        if (admin) {
+            return res.status(200).json({ userType: 'admin' });
+        }
+
+        // Check if the user is a Doctor
         const doctor = await Doctor.findOne({ email });
         if (doctor) {
             return res.status(200).json({ userType: 'doctor' });
         }
+
+        // Check if the user is a Patient
         const patient = await Patient.findOne({ email });
         if (patient) {
             return res.status(200).json({ userType: 'patient' });
         }
+
+        // Check if the user is a Pharmacist
+        const pharmacist = await Pharmacist.findOne({ email });
+        if (pharmacist) {
+            return res.status(200).json({ userType: 'pharmacist' });
+        }
+
+        // Check if the user is a Lab Attendee
+        const labAttendee = await LabAttendee.findOne({ email });
+        if (labAttendee) {
+            return res.status(200).json({ userType: 'labAttendee' });
+        }
+
+        // Check if the user is an Insurance Company
+        const insuranceCompany = await InsuranceCompany.findOne({ email });
+        if (insuranceCompany) {
+            return res.status(200).json({ userType: 'insuranceCompany' });
+        }
+
         res.status(404).json({ message: 'Email not found' });
     } catch (error) {
         console.error('Error checking user type:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 };
+
+
+
+
+
 const fetchFuturePendingAndConfirm = async () => {
     try {
         const response = await axios.get("http://localhost:5000/api/auth/get-future-pending-and-confirm", {
@@ -576,6 +628,159 @@ const getFuturePendingAndConfirmAppointments = async (req, res) => {
 };
 
 
+// prescription
+
+const savePrescription = async (req, res) => {
+    try {
+        const {
+            patientEmail,
+            patientAge,
+            patientGender,
+            doctorEmail,
+            diagnosis,
+            symptoms,
+            medications,
+            labTests,
+            advice,
+            followUpDate
+        } = req.body;
+
+        // Validate required fields
+        if (!patientEmail || !patientAge || !patientGender || !diagnosis) {
+            return res.status(400).json({ message: "All required fields must be filled." });
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(patientEmail)) {
+            return res.status(400).json({ message: "Invalid email format." });
+        }
+
+        // Check if patient exists in the database
+        const patient = await Patient.findOne({ email: patientEmail });
+        if (!patient) {
+            return res.status(404).json({ message: "Patient not found in the database." });
+        }
+
+        // Verify if patient age and gender match
+        if (patient.age !== parseInt(patientAge) || patient.gender !== patientGender) {
+            return res.status(400).json({ message: "Patient details do not match the records." });
+        }
+
+        // Create a new prescription
+        const newPrescription = new Prescription({
+            patientEmail,
+            patientAge,
+            patientGender,
+            doctorEmail,
+            diagnosis,
+            symptoms,
+            medicines: medications, // Ensure the frontend sends this as an array of objects
+            labTests: labTests, // Only include testName
+            advice,
+            followUpDate,
+            dateIssued: new Date()
+        });
+
+        // Save the prescription to the database
+        await newPrescription.save();
+
+        res.status(201).json({ message: "Prescription saved successfully!", prescription: newPrescription });
+
+    } catch (error) {
+        console.error("Error saving prescription:", error);
+        res.status(500).json({ message: "Failed to save prescription." });
+    }
+};
+
+
+
+const checkPrescription = async (req, res) => {
+    const { doctorEmail, patientEmail, date } = req.query;
+
+    try {
+        const prescription = await Prescription.findOne({
+            doctorEmail,
+            patientEmail,
+            dateIssued: {
+                $gte: new Date(new Date(date).setHours(0, 0, 0, 0)), // Start of the day (00:00:00.000)
+                $lt: new Date(new Date(date).setHours(23, 59, 59, 999)) // End of the day (23:59:59.999)
+            }
+        });
+
+        if (!prescription) {
+            alert("Plaese save the Prescription first!!")
+            return res.status(404).json({ exists: false });
+        }
+
+        res.status(200).json({ exists: true, prescriptionId: prescription._id });
+    } catch (error) {
+        console.error("Error checking prescription:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+const createLabTests = async (req, res) => {
+    const { prescriptionId, labTests } = req.body;
+
+    try {
+        const savedLabTests = await LabTest.create({
+            prescriptionId,
+            labTests
+        });
+
+        res.status(201).json({ message: "Lab tests saved successfully!", data: savedLabTests });
+    } catch (error) {
+        console.error("Error saving lab tests:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+const createPharmacyRequest = async (req, res) => {
+    try {
+        const {
+            prescriptionId,
+            doctorEmail,
+            doctorName,
+            patientEmail,
+            patientAge,
+            patientGender,
+            diagnosis,
+            medications,
+            advice,
+            date
+        } = req.body;
+
+        // Validate required fields
+        if (!prescriptionId || !doctorEmail || !patientEmail || !medications.length) {
+            return res.status(400).json({ message: "Prescription ID, doctor email, patient email, and at least one medication are required." });
+        }
+
+        // Check if the prescription exists
+        const prescription = await Prescription.findById(prescriptionId);
+        if (!prescription) {
+            return res.status(404).json({ message: "Prescription not found. Please save the prescription first." });
+        }
+
+        // Create and save the pharmacy request
+        const newPharmacyRequest = new Medicine({
+            prescriptionId,
+            medicines: medications.map(med => ({
+                medicineName: med.name,
+                dosage: med.dosage,
+                duration: med.duration,
+                status: "Pending" // Default status
+            }))
+        });
+
+        await newPharmacyRequest.save();
+
+        res.status(201).json({ message: "Pharmacy request created successfully!", data: newPharmacyRequest });
+    } catch (error) {
+        console.error("Error creating pharmacy request:", error);
+        res.status(500).json({ message: "Internal server error." });
+    }
+};
 
 module.exports = {
     addPatient,
@@ -599,5 +804,9 @@ module.exports = {
     checkUserType,
     getDoctorAppointments,
     updateAppointmentStatus,
-    getFuturePendingAndConfirmAppointments
+    getFuturePendingAndConfirmAppointments,
+    savePrescription,
+    checkPrescription,
+    createLabTests,
+    createPharmacyRequest
 };

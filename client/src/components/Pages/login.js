@@ -42,9 +42,31 @@ function Login() {
                 // Store email in AuthContext
                 setEmailInAuth(email);
 
-                // Navigate based on user type
+                // Redirect based on user type
                 setTimeout(() => {
-                    navigate(userType === 'doctor' ? '/Doctor' : '/profilePatient');
+                    switch (userType) {
+                        case 'admin':
+                            navigate('/admin');
+                            break;
+                        case 'doctor':
+                            navigate('/Doctor');
+                            break;
+                        case 'patient':
+                            navigate('/profilePatient');
+                            break;
+                        case 'pharmacist':
+                            navigate('/pharmacist-dashboard'); // Redirect to Pharmacist Dashboard
+                            break;
+                        case 'labAttendee':
+                            navigate('/lab-attendee-dashboard'); // Redirect to Lab Attendant Dashboard
+                            break;
+                        case 'insuranceCompany':
+                            navigate('/insurance-dashboard'); // Redirect to Insurance Dashboard
+                            break;
+                        default:
+                            toast.error("User type not recognized.");
+                            break;
+                    }
                 }, 3000);
             } else {
                 toast.error("Please verify your email before logging in.", {

@@ -178,15 +178,13 @@ const DoctorAppointmentDashboard = ({ isSidebarVisible }) => {
             });
 
             if (response.status === 201) {
-
-                // Fetch the updated categorized slots after saving
-                fetchCategorizedSlots();
+                fetchCategorizedSlots(); // Refresh the available slots
             } else {
                 alert(`Failed to save the slot. Status code: ${response.status}`);
             }
         } catch (error) {
-            if (error.response) {
-                alert(`Failed to save the slot. Error: ${error.response.data.error}`);
+            if (error.response && error.response.data.error) {
+                alert(`Failed to save the slot. Error: ${error.response.data.error}`); // Show the overlap error
             } else {
                 alert(`Failed to save the slot. Error: ${error.message}`);
             }

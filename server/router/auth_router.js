@@ -39,14 +39,26 @@ router.post('/reschedule-appointment', controllers.rescheduleAppointment);
 router.get('/get-future-pending-and-confirm', controllers.getFuturePendingAndConfirmAppointments);
 
 
-
-
-
-
-
-
-
-// Auth Routes
+// Auth Routes     login
 router.post('/check-user-type', controllers.checkUserType);
+
+
+
+// Prescription
+
+router.post("/prescriptions/create", controllers.savePrescription);
+router.get("/prescriptions/check", controllers.checkPrescription);
+router.post("/lab-tests/create", controllers.createLabTests);
+router.post("/pharmacy-requests/create", controllers.createPharmacyRequest);
+
+
+
+
+
+
+router.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ error: 'Internal server error' });
+});
 
 module.exports = router;
