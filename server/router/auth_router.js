@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const controllers = require('../controller/auth_controller');
+
 
 // Patient Routes
 router.post('/patients', controllers.addPatient);
@@ -47,10 +49,19 @@ router.post('/check-user-type', controllers.checkUserType);
 // Prescription
 
 router.post("/prescriptions/create", controllers.savePrescription);
+router.get("/prescriptions_before/check", controllers.checkPrescription_before);
 router.get("/prescriptions/check", controllers.checkPrescription);
 router.post("/lab-tests/create", controllers.createLabTests);
+router.get("/lab-tests/check", controllers.checkLabTests);
 router.post("/pharmacy-requests/create", controllers.createPharmacyRequest);
+router.get("/medicines/check", controllers.checkMedicines);
 
+
+
+
+// pharmacist
+
+router.get('/pharmacist/medicines', controllers.getPharmacistMedicines);
 
 
 

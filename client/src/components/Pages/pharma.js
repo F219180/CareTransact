@@ -1,7 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import Select from 'react-select';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import axios from 'axios';
+import { useMemo } from 'react';
 
 import {
     Download,
@@ -19,63 +21,60 @@ import {
 import './pharma.css';
 
 const PharmacistDashboard = () => {
-    // Initial Prescriptions Data with medication processed status
-    const [prescriptions, setPrescriptions] = useState([
-        {
-            id: 'RX001',
-            patientName: 'Emily Johnson',
-            patientId: 'PT2024001',
-            doctorName: 'Dr. Sarah Williams',
-            date: '2024-03-05',
-            status: 'Pending',
-            urgency: 'High',
-            medications: [
-                {
-                    id: 'MED001',
-                    name: 'Amoxicillin',
-                    dosage: '500mg',
-                    instructions: '3 times daily',
-                    frequency: 'TID',
-                    processed: false
-                },
-                {
-                    id: 'MED002',
-                    name: 'Ibuprofen',
-                    dosage: '200mg',
-                    instructions: 'As needed for pain',
-                    frequency: 'PRN',
-                    processed: false
-                }
-            ]
-        },
-        {
-            id: 'RX002',
-            patientName: 'Michael Chen',
-            patientId: 'PT2024002',
-            doctorName: 'Dr. Robert Lee',
-            date: '2024-03-04',
-            status: 'Approved',
-            urgency: 'Medium',
-            medications: [
-                {
-                    id: 'MED003',
-                    name: 'Metformin',
-                    dosage: '850mg',
-                    instructions: 'Once daily with meals',
-                    frequency: 'QD',
-                    processed: true
-                }
-            ]
-        }
-    ]);
-
-    // State for Filtering
+    const [prescriptions, setPrescriptions] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState(null);
     const [dateFilter, setDateFilter] = useState(null);
     const [selectedPrescription, setSelectedPrescription] = useState(null);
+    const [error, setError] = useState(null);
 
-    // Filtered Prescriptions
+    useEffect(() => {
+        fetchPrescriptions();
+    }, []);
+
+    const fetchPrescriptions = async () => {
+        try {
+            const response = await axios.get('http://localhost:5000/api/auth/pharmacist/medicines');
+
+            // Check if the response data is valid
+            if (!response.data) {
+                throw new Error('No data received from the server');
+            }
+
+            const data = response.data;
+            console.log("I received something from medicine");
+            //console.log(data.medicine.dosage)
+
+            // Ensure data is an array before mapping
+            if (!Array.isArray(data)) {
+                throw new Error('Expected an array of prescriptions, but received something else');
+            }
+            const formattedPrescriptions = data.map(pres => ({
+                id: pres.prescriptionId,
+                patientName: pres.patient.name,
+                patientId: pres.patient.email,
+                doctorName: pres.doctor.name,
+                date: new Date().toISOString().split('T')[0],
+                status: 'Pending',
+                urgency: 'Medium',
+                medicines: pres.medicines ? pres.medicines.map(med => ({
+                    id: med.id,
+                    name: med.name,
+                    dosage: med.dosage,
+                    duration: med.duration,
+                    status: med.status
+                })) : [] // ✅ Ensures medicines is always an array
+            }));
+
+
+            setPrescriptions(formattedPrescriptions);
+            setError(null); // Clear any previous errors
+        } catch (error) {
+            console.error('Error fetching prescriptions:', error);
+            setError('Failed to fetch prescriptions. Please try again later.');
+        }
+    };
+
     const filteredPrescriptions = useMemo(() => {
         return prescriptions.filter(prescription => {
             const matchesSearch =
@@ -89,13 +88,11 @@ const PharmacistDashboard = () => {
         });
     }, [prescriptions, searchTerm, statusFilter, dateFilter]);
 
-    // Status Options for Dropdown
     const statusOptions = [
         { value: 'Pending', label: 'Pending' },
         { value: 'Approved', label: 'Approved' }
     ];
 
-    // Custom styles for react-select
     const customSelectStyles = {
         control: (provided, state) => ({
             ...provided,
@@ -115,18 +112,14 @@ const PharmacistDashboard = () => {
         })
     };
 
-    // Function to process individual medication
     const processMedication = (prescriptionId, medicationId) => {
         setPrescriptions(prevPrescriptions =>
             prevPrescriptions.map(prescription => {
                 if (prescription.id === prescriptionId) {
-                    // Update the medication's processed status
                     const updatedMedications = prescription.medications.map(med =>
                         med.id === medicationId ? { ...med, processed: true } : med
                     );
-                    // Check if all medications are processed
                     const allProcessed = updatedMedications.every(med => med.processed);
-                    // Update prescription status if all medications are processed
                     return {
                         ...prescription,
                         medications: updatedMedications,
@@ -136,7 +129,6 @@ const PharmacistDashboard = () => {
                 return prescription;
             })
         );
-        // If we're viewing the prescription details, update the selected prescription too
         if (selectedPrescription && selectedPrescription.id === prescriptionId) {
             setSelectedPrescription(prevSelected => {
                 if (!prevSelected) return null;
@@ -153,7 +145,6 @@ const PharmacistDashboard = () => {
         }
     };
 
-    // Prescription Detail Modal Component
     const PrescriptionDetailModal = ({ prescription, onClose }) => (
         <div className="prescription-modal">
             <div className="prescription-modal-content">
@@ -170,26 +161,34 @@ const PharmacistDashboard = () => {
                     </div>
                     <div className="medications-list">
                         <h3>Medications</h3>
-                        {prescription.medications.map(med => (
-                            <div key={med.id} className="medication-item">
-                                <span>{med.name}</span>
-                                <span>{med.dosage}</span>
-                                <span>{med.instructions}</span>
-                                {prescription.status === 'Pending' && !med.processed && (
-                                    <button
-                                        className="process-med-btn"
-                                        onClick={() => processMedication(prescription.id, med.id)}
-                                    >
-                                        Process
-                                    </button>
-                                )}
-                                {med.processed && (
-                                    <span className="processed-indicator">
-                                        <CheckCircle size={16} /> Processed
-                                    </span>
-                                )}
-                            </div>
-                        ))}
+                        {prescription.medicines && prescription.medicines.length > 0 ? (
+                            prescription.medicines.map(med => (
+                                <div key={med.id} className="medication-item">
+                                    <span>{med.name}</span>
+                                    <span>{med.dosage}</span>
+                                    <span>{med.duration}</span>
+
+                                    {prescription.status === 'Pending' && med.status === 'Pending' && (
+                                        <button
+                                            className="process-med-btn"
+                                            onClick={() => processMedication(prescription.id, med.id)}
+                                        >
+                                            Process
+                                        </button>
+                                    )}
+
+                                    {med.status === 'Provided' && (
+                                        <span className="processed-indicator">
+                                            <CheckCircle size={16} /> Processed
+                                        </span>
+                                    )}
+                                </div>
+                            ))
+                        ) : (
+                            <p>No medicines available.</p>  // ✅ Shows this message if medicines are missing
+                        )}
+
+
                     </div>
                 </div>
                 <div className="modal-actions">
@@ -206,6 +205,8 @@ const PharmacistDashboard = () => {
                 <div className="header-actions">
                 </div>
             </header>
+
+            {error && <div className="error-message">{error}</div>}
 
             <div className="dashboard-filters">
                 <div className="search-container">

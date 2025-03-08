@@ -1,4 +1,5 @@
 const { Doctor, Patient, Appointment, Admin, Claim, Prescription, LabAttendee, Pharmacist, LabTest, Medicine, InsuranceCompany } = require('../models/user_models');
+const mongoose = require('mongoose');
 
 
 // Patient Controllers
@@ -693,6 +694,26 @@ const savePrescription = async (req, res) => {
     }
 };
 
+const checkPrescription_before = async (req, res) => {
+    const { doctorEmail, patientEmail, date } = req.query;
+
+    try {
+        const prescription = await Prescription.findOne({
+            doctorEmail,
+            patientEmail,
+            dateIssued: {
+                $gte: new Date(new Date(date).setHours(0, 0, 0, 0)), // Start of the day (00:00:00.000)
+                $lt: new Date(new Date(date).setHours(23, 59, 59, 999)) // End of the day (23:59:59.999)
+            }
+        });
+
+        res.status(200).json({ exists: !!prescription });
+    } catch (error) {
+        console.error("Error checking prescription:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
 
 
 const checkPrescription = async (req, res) => {
@@ -732,6 +753,23 @@ const createLabTests = async (req, res) => {
         res.status(201).json({ message: "Lab tests saved successfully!", data: savedLabTests });
     } catch (error) {
         console.error("Error saving lab tests:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+const checkLabTests = async (req, res) => {
+    const { prescriptionId } = req.query;
+
+    try {
+        const labTests = await LabTest.findOne({ prescriptionId });
+
+        if (labTests) {
+            return res.status(200).json({ exists: true });
+        } else {
+            return res.status(200).json({ exists: false });
+        }
+    } catch (error) {
+        console.error("Error checking lab tests:", error);
         res.status(500).json({ message: "Internal server error" });
     }
 };
@@ -782,6 +820,94 @@ const createPharmacyRequest = async (req, res) => {
     }
 };
 
+const checkMedicines = async (req, res) => {
+    const { prescriptionId } = req.query;
+
+    try {
+        const medicines = await Medicine.findOne({ prescriptionId });
+
+        if (medicines) {
+            return res.status(200).json({ exists: true });
+        } else {
+            return res.status(200).json({ exists: false });
+        }
+    } catch (error) {
+        console.error("Error checking medicines:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+
+
+
+
+
+//////////   pharmacist
+const getPharmacistMedicines = async (req, res) => {
+    try {
+        // Fetch all medicines and populate the prescriptionId field
+        const medicines = await Medicine.find().populate('prescriptionId');
+
+        if (!medicines.length) {
+            return res.status(404).json({ message: 'No medicines found' });
+        }
+
+        // Extract unique prescription IDs
+        const prescriptionIds = [...new Set(medicines.map(med => med.prescriptionId?._id.toString()))];
+
+        // Fetch prescriptions with populated doctor and patient emails
+        const prescriptions = await Prescription.find({ _id: { $in: prescriptionIds } });
+
+        if (!prescriptions.length) {
+            return res.status(404).json({ message: 'No prescriptions found for these medicines' });
+        }
+
+        // Extract unique doctor and patient emails
+        const doctorEmails = [...new Set(prescriptions.map(pres => pres.doctorEmail))];
+        const patientEmails = [...new Set(prescriptions.map(pres => pres.patientEmail))];
+
+        // Fetch doctor details
+        const doctors = await Doctor.find({ email: { $in: doctorEmails } });
+        const doctorMap = doctors.reduce((acc, doctor) => {
+            acc[doctor.email] = { name: doctor.name, specialization: doctor.specialization };
+            return acc;
+        }, {});
+
+        // Fetch patient details
+        const patients = await Patient.find({ email: { $in: patientEmails } });
+        const patientMap = patients.reduce((acc, patient) => {
+            acc[patient.email] = { name: patient.name, age: patient.age, gender: patient.gender };
+            return acc;
+        }, {});
+
+        // Construct response data
+        const result = medicines.map(med => {
+            const prescription = prescriptions.find(pres => pres._id.toString() === med.prescriptionId?._id.toString());
+            if (!prescription) return null; // Skip if no prescription found
+
+            return {
+                _id: med._id, // Add medicine ID
+                prescriptionId: prescription._id,
+                doctor: doctorMap[prescription.doctorEmail] || { name: "Unknown", specialization: "Unknown" },
+                patient: patientMap[prescription.patientEmail] || { name: "Unknown", age: "N/A", gender: "N/A" },
+                medicines: med.medicines.map(medItem => ({  // ✅ Correctly fetch medicines
+                    id: medItem._id,
+                    name: medItem.medicineName,
+                    dosage: medItem.dosage,
+                    duration: medItem.duration,
+                    status: medItem.status
+                }))
+            };
+        }).filter(record => record !== null); // Remove any null entries
+
+        res.status(200).json(result);
+    } catch (error) {
+        console.error('Error fetching medicines for pharmacist:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+
 module.exports = {
     addPatient,
     getPatientDetails,
@@ -806,7 +932,11 @@ module.exports = {
     updateAppointmentStatus,
     getFuturePendingAndConfirmAppointments,
     savePrescription,
+    checkPrescription_before,
     checkPrescription,
     createLabTests,
-    createPharmacyRequest
+    checkLabTests,
+    createPharmacyRequest,
+    checkMedicines,
+    getPharmacistMedicines
 };

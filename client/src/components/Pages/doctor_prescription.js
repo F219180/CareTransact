@@ -3,10 +3,16 @@ import "./doctor_prescription.css";
 import { useAuth } from "../../context/AuthContext";
 import axios from "axios";
 import bg from "../../assets/images/patinet_bg.avif";
-import Sidebardoctor from "./sidebardoctor"; // Import Sidebar
+import Sidebardoctor from "./sidebardoctor";
+import * as XLSX from "xlsx"; // Import xlsx library
+import medicinesFile from './medicines.xlsx';
+import labTestFile from './lab_tests.xlsx';
+
+
+
 
 const DoctorPrescription = ({ isSidebarVisible, toggleSidebar }) => {
-    const [isSidebarVisibleState, setIsSidebarVisible] = useState(isSidebarVisible); // Use the passed prop
+    const [isSidebarVisibleState, setIsSidebarVisible] = useState(isSidebarVisible);
     const [prescriptionData, setPrescriptionData] = useState({
         patientEmail: "",
         patientAge: "",
@@ -19,14 +25,14 @@ const DoctorPrescription = ({ isSidebarVisible, toggleSidebar }) => {
         followUpDate: ""
     });
 
-
-
-
     const [doctorInfo, setDoctorInfo] = useState({
         name: "N/A",
         specialization: "N/A",
         education: "N/A"
     });
+
+    const [medicines, setMedicines] = useState([]); // State to store medicine names
+    const [labTests, setLabTests] = useState([]); // State to store lab test names
 
     const { email } = useAuth();
 
@@ -48,102 +54,68 @@ const DoctorPrescription = ({ isSidebarVisible, toggleSidebar }) => {
         fetchDoctorDetails();
     }, [email]);
 
+    useEffect(() => {
+        const fetchMedicines = async () => {
+            try {
+                const response = await fetch(medicinesFile);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const arrayBuffer = await response.arrayBuffer();
+                const data = new Uint8Array(arrayBuffer);
+                const workbook = XLSX.read(data, { type: "array" });
+                const sheetName = workbook.SheetNames[0]; // Get the first sheet
+                const worksheet = workbook.Sheets[sheetName];
+                if (!worksheet) {
+                    throw new Error("No worksheet found in the Excel file.");
+                }
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                // Extract medicine names from the first column
+                const medicineNames = jsonData.slice(1).map(row => row[0]); // Skip header row
+                setMedicines(medicineNames);
+            } catch (error) {
+                console.error("Error fetching medicines:", error);
+            }
+        };
+
+        fetchMedicines();
+    }, []);
+
+    useEffect(() => {
+        const fetchLabTests = async () => {
+            try {
+                const response = await fetch(labTestFile);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const arrayBuffer = await response.arrayBuffer();
+                const data = new Uint8Array(arrayBuffer);
+                const workbook = XLSX.read(data, { type: "array" });
+                const sheetName = workbook.SheetNames[0]; // Get the first sheet
+                const worksheet = workbook.Sheets[sheetName];
+                if (!worksheet) {
+                    throw new Error("No worksheet found in the Excel file.");
+                }
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                // Extract lab test names from the first column
+                const labTestNames = jsonData.slice(1).map(row => row[0]); // Skip header row
+                setLabTests(labTestNames);
+            } catch (error) {
+                console.error("Error fetching lab tests:", error);
+            }
+        };
+
+        fetchLabTests();
+    }, []);
+
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setPrescriptionData({
             ...prescriptionData,
             [name]: value,
         });
-    };
-
-
-
-    const isValidEmail = (email) => {
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    };
-
-    const savePrescription = async () => {
-        // Check if all required fields are filled
-        if (!prescriptionData.patientEmail) {
-            alert("Please enter the patient's email.");
-            return;
-        }
-        if (!prescriptionData.patientAge) {
-            alert("Please enter the patient's age.");
-            return;
-        }
-        if (!prescriptionData.patientGender) {
-            alert("Please select the patient's gender.");
-            return;
-        }
-        if (!prescriptionData.diagnosis) {
-            alert("Please enter the diagnosis.");
-            return;
-        }
-
-        // Validate email format using regex
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(prescriptionData.patientEmail)) {
-            alert("Please enter a valid email address.");
-            return;
-        }
-
-        try {
-            // Check if patient exists in the database
-            const patientResponse = await axios.get(`http://localhost:5000/api/auth/patient-details?email=${prescriptionData.patientEmail}`);
-            const patientData = patientResponse.data;
-
-            // Validate age and gender match with patient data
-            if (patientData.age !== parseInt(prescriptionData.patientAge) || patientData.gender !== prescriptionData.patientGender) {
-                alert("Patient details do not match with our records. Please check the email, age, and gender.");
-                return;
-            }
-
-            // Transform labTests into the required format (remove status)
-            const formattedLabTests = prescriptionData.labTests.map(test => ({
-                testName: test // Only include testName
-            }));
-
-            // Prepare the prescription data to be sent to the backend
-            const prescriptionPayload = {
-                patientEmail: prescriptionData.patientEmail,
-                patientAge: parseInt(prescriptionData.patientAge),
-                patientGender: prescriptionData.patientGender,
-                doctorEmail: email,
-                diagnosis: prescriptionData.diagnosis,
-                symptoms: prescriptionData.symptoms,
-                medications: prescriptionData.medications,
-                labTests: formattedLabTests, // Use the formatted labTests without status
-                advice: prescriptionData.advice,
-                followUpDate: prescriptionData.followUpDate ? new Date(prescriptionData.followUpDate) : null,
-                dateIssued: new Date().toISOString()
-            };
-
-            // Validate follow-up date
-            if (prescriptionPayload.followUpDate && isToday(prescriptionPayload.followUpDate)) {
-                alert("Follow-up date cannot be today. Please select a future date.");
-                return;
-            }
-
-            // Save prescription to database
-            await axios.post("http://localhost:5000/api/auth/prescriptions/create", prescriptionPayload);
-
-            alert("Prescription saved successfully!");
-
-            // Do not clear the form after saving
-            // clearForm(); // Comment out or remove this line
-        } catch (error) {
-            console.error("Error saving prescription:", error);
-            alert("Failed to save prescription. Ensure the email is correct and registered.");
-        }
-    };
-
-    // Helper function to check if a date is today
-    const isToday = (date) => {
-        const today = new Date();
-        return date.getDate() === today.getDate() &&
-            date.getMonth() === today.getMonth() &&
-            date.getFullYear() === today.getFullYear();
     };
 
     const handleSymptomChange = (index, value) => {
@@ -221,7 +193,101 @@ const DoctorPrescription = ({ isSidebarVisible, toggleSidebar }) => {
         });
     };
 
+    const savePrescription = async () => {
+        // Check if all required fields are filled
+        if (!prescriptionData.patientEmail) {
+            alert("Please enter the patient's email.");
+            return;
+        }
+        if (!prescriptionData.patientAge) {
+            alert("Please enter the patient's age.");
+            return;
+        }
+        if (!prescriptionData.patientGender) {
+            alert("Please select the patient's gender.");
+            return;
+        }
+        if (!prescriptionData.diagnosis) {
+            alert("Please enter the diagnosis.");
+            return;
+        }
 
+        // Validate email format using regex
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(prescriptionData.patientEmail)) {
+            alert("Please enter a valid email address.");
+            return;
+        }
+
+        try {
+            // Check if patient exists in the database
+            const patientResponse = await axios.get(`http://localhost:5000/api/auth/patient-details?email=${prescriptionData.patientEmail}`);
+            const patientData = patientResponse.data;
+
+            // Validate age and gender match with patient data
+            if (patientData.age !== parseInt(prescriptionData.patientAge) || patientData.gender !== prescriptionData.patientGender) {
+                alert("Patient details do not match with our records. Please check the email, age, and gender.");
+                return;
+            }
+
+            // Transform labTests into the required format (remove status)
+            const formattedLabTests = prescriptionData.labTests.map(test => ({
+                testName: test // Only include testName
+            }));
+
+            // Prepare the prescription data to be sent to the backend
+            const prescriptionPayload = {
+                patientEmail: prescriptionData.patientEmail,
+                patientAge: parseInt(prescriptionData.patientAge),
+                patientGender: prescriptionData.patientGender,
+                doctorEmail: email,
+                diagnosis: prescriptionData.diagnosis,
+                symptoms: prescriptionData.symptoms,
+                medications: prescriptionData.medications,
+                labTests: formattedLabTests, // Use the formatted labTests without status
+                advice: prescriptionData.advice,
+                followUpDate: prescriptionData.followUpDate ? new Date(prescriptionData.followUpDate) : null,
+                dateIssued: new Date().toISOString()
+            };
+
+            // Validate follow-up date
+            if (prescriptionPayload.followUpDate && isToday(prescriptionPayload.followUpDate)) {
+                alert("Follow-up date cannot be today. Please select a future date.");
+                return;
+            }
+
+            const prescriptionResponse = await axios.get("http://localhost:5000/api/auth/prescriptions_before/check", {
+                params: {
+                    doctorEmail: email,
+                    patientEmail: prescriptionData.patientEmail,
+                    date: new Date().toISOString()
+                }
+            });
+
+            if (prescriptionResponse.data.exists) {
+                alert("Prescription already exists for this patient and doctor.");
+                return;
+            }
+
+            // Save prescription to database
+            await axios.post("http://localhost:5000/api/auth/prescriptions/create", prescriptionPayload);
+
+            alert("Prescription saved successfully!");
+
+            // Do not clear the form after saving
+            // clearForm(); // Comment out or remove this line
+        } catch (error) {
+            console.error("Error saving prescription:", error);
+            alert("Failed to save prescription. Ensure the email is correct and registered.");
+        }
+    };
+
+    const isToday = (date) => {
+        const today = new Date();
+        return date.getDate() === today.getDate() &&
+            date.getMonth() === today.getMonth() &&
+            date.getFullYear() === today.getFullYear();
+    };
 
     const sendToLabAttendant = async () => {
         // Validate required fields for the prescription
@@ -280,6 +346,18 @@ const DoctorPrescription = ({ isSidebarVisible, toggleSidebar }) => {
                 return;
             }
 
+            // Check if lab tests already exist for this prescription
+            const labTestsResponse = await axios.get("http://localhost:5000/api/auth/lab-tests/check", {
+                params: {
+                    prescriptionId: prescriptionResponse.data.prescriptionId
+                }
+            });
+
+            if (labTestsResponse.data.exists) {
+                alert("Lab tests already exist for this prescription. No need to send again.");
+                return;
+            }
+
             // Save lab tests with status "Pending"
             const labTestPayload = {
                 prescriptionId: prescriptionResponse.data.prescriptionId, // Prescription ID from the saved prescription
@@ -294,7 +372,7 @@ const DoctorPrescription = ({ isSidebarVisible, toggleSidebar }) => {
             alert("Lab request sent successfully!");
         } catch (error) {
             console.error("Error sending lab request:", error);
-            alert("Please save the Precription first.");
+            alert("Please save the Prescription first.");
         }
     };
 
@@ -355,6 +433,18 @@ const DoctorPrescription = ({ isSidebarVisible, toggleSidebar }) => {
                 return;
             }
 
+            // Check if medications already exist for this prescription
+            const medicationsResponse = await axios.get("http://localhost:5000/api/auth/medicines/check", {
+                params: {
+                    prescriptionId: prescriptionResponse.data.prescriptionId
+                }
+            });
+
+            if (medicationsResponse.data.exists) {
+                alert("Medications already exist for this prescription. No need to send again.");
+                return;
+            }
+
             // Prepare the payload for the pharmacy request
             const pharmacyRequestPayload = {
                 prescriptionId: prescriptionResponse.data.prescriptionId,
@@ -375,7 +465,7 @@ const DoctorPrescription = ({ isSidebarVisible, toggleSidebar }) => {
             alert("Prescription sent to pharmacist successfully!");
         } catch (error) {
             console.error("Error sending prescription to pharmacist:", error);
-            alert("Please save the Precription first");
+            alert("Please save the Prescription first.");
         }
     };
 
@@ -394,7 +484,6 @@ const DoctorPrescription = ({ isSidebarVisible, toggleSidebar }) => {
         });
     };
 
-
     const formatDate = () => {
         const today = new Date();
         return today.toLocaleDateString('en-US', {
@@ -406,7 +495,6 @@ const DoctorPrescription = ({ isSidebarVisible, toggleSidebar }) => {
 
     return (
         <div className="doctor-prescription-container">
-            {/* Sidebar */}
             <Sidebardoctor isSidebarVisible={isSidebarVisibleState} toggleSidebar={() => setIsSidebarVisible(!isSidebarVisibleState)} />
 
             <div className={`doc-home-container ${isSidebarVisibleState ? "sidebar-visible" : "sidebar-hidden"}`} style={{
@@ -431,7 +519,6 @@ const DoctorPrescription = ({ isSidebarVisible, toggleSidebar }) => {
                             <div className="form-section">
                                 <h4>Patient Information</h4>
                                 <div className="form-row">
-
                                     <div className="form-group">
                                         <label>Patient Email</label>
                                         <input
@@ -443,9 +530,6 @@ const DoctorPrescription = ({ isSidebarVisible, toggleSidebar }) => {
                                             required
                                         />
                                     </div>
-
-
-
                                     <div className="form-group">
                                         <label>Age</label>
                                         <input type="number" name="patientAge" value={prescriptionData.patientAge}
@@ -479,8 +563,7 @@ const DoctorPrescription = ({ isSidebarVisible, toggleSidebar }) => {
                                             placeholder="Enter symptom"
                                         />
                                         <div className="item-controls">
-                                            <button type="button" className="control-btn remove-btn" onClick={() =>
-                                                removeSymptom(index)}>-</button>
+                                            <button type="button" className="control-btn remove-btn" onClick={() => removeSymptom(index)}>-</button>
                                         </div>
                                     </div>
                                 ))}
@@ -493,37 +576,80 @@ const DoctorPrescription = ({ isSidebarVisible, toggleSidebar }) => {
                                     <div key={index} className="medication-item">
                                         <div className="medication-header">
                                             <h5>Medication #{index + 1}</h5>
-                                            <button type="button" className="control-btn remove-btn" onClick={() =>
-                                                removeMedication(index)}>-</button>
+                                            <button type="button" className="control-btn remove-btn" onClick={() => removeMedication(index)}>-</button>
                                         </div>
                                         <div className="medication-details">
                                             <div className="form-group">
                                                 <label>Name</label>
-                                                <input type="text" value={medication.name || ""} onChange={(e) =>
-                                                    handleMedicationChange(index, "name", e.target.value)}
+                                                <input
+                                                    type="text"
+                                                    list="medicines-list" // Add datalist for autocomplete
+                                                    value={medication.name || ""}
+                                                    onChange={(e) => handleMedicationChange(index, "name", e.target.value)}
                                                     placeholder="Medication name"
                                                 />
+                                                <datalist id="medicines-list">
+                                                    {medicines.map((medicine, idx) => (
+                                                        <option key={idx} value={medicine} />
+                                                    ))}
+                                                </datalist>
                                             </div>
                                             <div className="form-group">
                                                 <label>Dosage</label>
-                                                <input type="text" value={medication.dosage || ""} onChange={(e) =>
-                                                    handleMedicationChange(index, "dosage", e.target.value)}
-                                                    placeholder="e.g., 500mg"
-                                                />
+                                                <select
+                                                    value={medication.dosage || ""}
+                                                    onChange={(e) => handleMedicationChange(index, "dosage", e.target.value)}
+                                                >
+                                                    <option value="">Select dosage</option>
+                                                    <option value="500mg">500mg</option>
+                                                    <option value="250mg">250mg</option>
+                                                    <option value="100mg">100mg</option>
+                                                    <option value="50mg">50mg</option>
+                                                    <option value="10mg">10mg</option>
+                                                    <option value="5mg">5mg</option>
+                                                    <option value="2mg">2mg</option>
+                                                    <option value="1g">1g</option>
+                                                    <option value="200mcg">200mcg</option>
+                                                    <option value="100mcg">100mcg</option>
+                                                    <option value="50mcg">50mcg</option>
+                                                    <option value="10mcg">10mcg</option>
+                                                </select>
                                             </div>
                                             <div className="form-group">
                                                 <label>Frequency</label>
-                                                <input type="text" value={medication.frequency || ""} onChange={(e) =>
-                                                    handleMedicationChange(index, "frequency", e.target.value)}
-                                                    placeholder="e.g., Twice daily"
-                                                />
+                                                <select
+                                                    value={medication.frequency || ""}
+                                                    onChange={(e) => handleMedicationChange(index, "frequency", e.target.value)}
+                                                >
+                                                    <option value="">Select frequency</option>
+                                                    <option value="Once daily">Once daily</option>
+                                                    <option value="Twice daily">Twice daily</option>
+                                                    <option value="Three times daily">Three times daily</option>
+                                                    <option value="Four times daily">Four times daily</option>
+                                                    <option value="Every 6 hours">Every 6 hours</option>
+                                                    <option value="Every 8 hours">Every 8 hours</option>
+                                                    <option value="Every 12 hours">Every 12 hours</option>
+                                                    <option value="As needed">As needed</option>
+                                                </select>
                                             </div>
                                             <div className="form-group">
                                                 <label>Duration</label>
-                                                <input type="text" value={medication.duration || ""} onChange={(e) =>
-                                                    handleMedicationChange(index, "duration", e.target.value)}
-                                                    placeholder="e.g., 7 days"
-                                                />
+                                                <select
+                                                    value={medication.duration || ""}
+                                                    onChange={(e) => handleMedicationChange(index, "duration", e.target.value)}
+                                                >
+                                                    <option value="">Select duration</option>
+                                                    <option value="3 days">3 days</option>
+                                                    <option value="5 days">5 days</option>
+                                                    <option value="7 days">7 days</option>
+                                                    <option value="10 days">10 days</option>
+                                                    <option value="14 days">14 days</option>
+                                                    <option value="1 month">1 month</option>
+                                                    <option value="3 months">3 months</option>
+                                                    <option value="6 months">6 months</option>
+                                                    <option value="1 year">1 year</option>
+                                                    <option value="As prescribed">As prescribed</option>
+                                                </select>
                                             </div>
                                         </div>
                                     </div>
@@ -535,12 +661,20 @@ const DoctorPrescription = ({ isSidebarVisible, toggleSidebar }) => {
                                 <h4>Lab Tests</h4>
                                 {prescriptionData.labTests.map((test, index) => (
                                     <div key={index} className="list-item-container">
-                                        <input type="text" value={test} onChange={(e) => handleLabTestChange(index, e.target.value)}
+                                        <input
+                                            type="text"
+                                            list="lab-tests-list" // Add datalist for autocomplete
+                                            value={test}
+                                            onChange={(e) => handleLabTestChange(index, e.target.value)}
                                             placeholder="Enter lab test"
                                         />
+                                        <datalist id="lab-tests-list">
+                                            {labTests.map((labTest, idx) => (
+                                                <option key={idx} value={labTest} />
+                                            ))}
+                                        </datalist>
                                         <div className="item-controls">
-                                            <button type="button" className="control-btn remove-btn" onClick={() =>
-                                                removeLabTest(index)}>-</button>
+                                            <button type="button" className="control-btn remove-btn" onClick={() => removeLabTest(index)}>-</button>
                                         </div>
                                     </div>
                                 ))}

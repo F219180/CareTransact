@@ -170,15 +170,12 @@ const medicineSchema = new mongoose.Schema({
     updatedAt: { type: Date, default: Date.now }
 }, { collection: 'medicines' });
 
+
 const insuranceCompanySchema = new mongoose.Schema({
     name: { type: String, required: true, unique: true }, // Official Name
     email: { type: String, required: true, unique: true }, // Official Contact Email
     contactNumber: { type: String }, // Customer Support Number
     address: { type: String }, // Office Address
-    registrationNumber: { type: String, unique: true }, // ✅ Government Legal Registration Number
-    regulatoryAuthority: { type: String }, // ✅ Issuing authority (e.g., SECP, FCA)
-    logo: { type: String, default: "" }, // ✅ URL of the company logo
-    services: { type: [String], default: [] }, // ✅ List of services offered (e.g., Health, Auto, Travel Insurance)
 }, { collection: 'insuranceCompanies' });
 
 
