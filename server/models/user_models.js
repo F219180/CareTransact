@@ -16,16 +16,21 @@ const doctorSchema = new mongoose.Schema({
 
 // Patient Schema (Profile information specific to patients)
 const patientSchema = new mongoose.Schema({
-    email: { type: String, required: true, unique: true }, // Compulsory field
-    name: { type: String, default: "" },
-    gender: { type: String, enum: ["Female", "Male", "Other", null], default: null }, // Allow null
-    age: { type: Number, default: null },
-    bloodGroup: { type: String, enum: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", null], default: null }, // Allow null
-    cnic: { type: String, default: "" },
-    contactNumber: { type: String, default: "" },
-    dob: { type: Date, default: null },
-    maritalStatus: { type: String, enum: ["Married", "Single", "Divorced", "Widowed", null], default: null }, // Allow null
-    profilePicture: { type: String, default: "" }, // URL for storing profile picture
+    name: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    gender: { type: String, enum: ['Male', 'Female', 'Other', 'N/A'], default: 'N/A' },
+    age: { type: Number },
+    bloodGroup: { type: String, enum: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'N/A'], default: 'N/A' },
+    cnic: { type: String },
+    contactNumber: { type: String },
+    dob: { type: Date },
+    maritalStatus: { type: String, enum: ['Married', 'Single', 'Divorced', 'Widowed', 'N/A'], default: 'N/A' },
+    profilePicture: { type: String, default: '' },
+    // Only adding the essential insurance fields
+    insuranceCardFront: { type: String, default: '' },
+    insuranceCardBack: { type: String, default: '' },
+    insuranceProvider: { type: String, required: true }
 });
 
 
@@ -172,12 +177,12 @@ const medicineSchema = new mongoose.Schema({
 
 
 const insuranceCompanySchema = new mongoose.Schema({
-    name: { type: String, required: true, unique: true }, // Official Name
-    email: { type: String, required: true, unique: true }, // Official Contact Email
-    contactNumber: { type: String }, // Customer Support Number
-    address: { type: String }, // Office Address
+    name: { type: String, required: true, unique: true },
+    email: { type: String, required: true, unique: true },
+    contactNumber: { type: String },
+    address: { type: String },
+    registrationNumber: { type: String, unique: true, sparse: true } // Add this field
 }, { collection: 'insuranceCompanies' });
-
 
 // Exporting Models
 const Doctor = mongoose.model('Doctor', doctorSchema);

@@ -6,6 +6,11 @@ require('dotenv').config();
 const checkAppointmentsAndSendEmails = require('./services/reminder_service');
 
 const app = express();
+const bodyParser = require('body-parser');
+
+// Increase the payload limit to 50MB
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }))
 
 // Middleware
 app.use(cors({ origin: 'http://localhost:3000', methods: ['GET', 'POST', 'PUT', 'DELETE'] }));

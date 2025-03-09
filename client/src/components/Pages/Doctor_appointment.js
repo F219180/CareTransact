@@ -11,8 +11,8 @@ import {
     FaTimesCircle,
     FaSave
 } from 'react-icons/fa';
-import axios from 'axios'; // Import axios
-import { useAuth } from '../../context/AuthContext'; // Import useAuth hook
+import axios from 'axios';
+import { useAuth } from '../../context/AuthContext';
 
 // Initialize localizer for react-big-calendar
 const localizer = momentLocalizer(moment);
@@ -21,6 +21,7 @@ const DoctorAppointmentDashboard = ({ isSidebarVisible }) => {
     const { email } = useAuth();
     const [pendingAppointments, setPendingAppointments] = useState([]);
     const [futureAppointments, setFutureAppointments] = useState([]);
+
     useEffect(() => {
         const fetchAppointments = async () => {
             try {
@@ -53,13 +54,13 @@ const DoctorAppointmentDashboard = ({ isSidebarVisible }) => {
         }
     }, [email]);
 
-
     // Validation errors state
     const [categorizedSlots, setCategorizedSlots] = useState({
         today: [],
         tomorrow: [],
         future: [],
     });
+
     const fetchCategorizedSlots = async () => {
         try {
             const response = await axios.get('http://localhost:5000/api/auth/get-categorized-slots', {
@@ -76,6 +77,7 @@ const DoctorAppointmentDashboard = ({ isSidebarVisible }) => {
             console.error("Error fetching categorized slots:", error);
         }
     };
+
     useEffect(() => {
         if (email) {
             fetchCategorizedSlots();
@@ -95,20 +97,102 @@ const DoctorAppointmentDashboard = ({ isSidebarVisible }) => {
         };
 
         removeExpiredAppointmentsOnLoad();
-    }, []); // Empty dependency array ensures this runs only on component mount
+    }, []);
 
+    // Enhanced validation function
     const validateSlot = () => {
         const newErrors = {};
         const now = new Date();
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
-        if (!newSlot.date) newErrors.date = "Date is required.";
-        else if (new Date(newSlot.date) < now.setHours(0, 0, 0, 0)) {
-            newErrors.date = "Cannot select a past date.";
+        // Date validation
+        if (!newSlot.date) {
+            newErrors.date = "Date is required.";
+        } else {
+            const selectedDate = new Date(newSlot.date);
+
+            // Check if date is in the past
+            if (selectedDate < today) {
+                newErrors.date = "Cannot select a past date.";
+            }
+
+            // Limit scheduling to 3 months in the future
+            const threeMonthsLater = new Date();
+            threeMonthsLater.setMonth(threeMonthsLater.getMonth() + 3);
+
+            if (selectedDate > threeMonthsLater) {
+                newErrors.date = "Cannot schedule more than 3 months in advance.";
+            }
         }
-        if (!newSlot.startTime) newErrors.startTime = "Start time is required.";
-        if (!newSlot.endTime) newErrors.endTime = "End time is required.";
-        else if (newSlot.startTime >= newSlot.endTime) {
-            newErrors.endTime = "End time must be after start time.";
+
+        // Time validation
+        // Time validation
+        if (!newSlot.startTime) {
+            newErrors.startTime = "Start time is required.";
+        } else {
+            // Check if start time is within extended business hours (9 AM to 9 PM)
+            const [startHour, startMinute] = newSlot.startTime.split(':').map(Number);
+
+            if (startHour < 9 || startHour >= 21) {
+                newErrors.startTime = "Start time must be between 9:00 AM and 9:00 PM.";
+            }
+        }
+
+        if (!newSlot.endTime) {
+            newErrors.endTime = "End time is required.";
+        } else {
+            // Check if end time is within extended business hours
+            const [endHour, endMinute] = newSlot.endTime.split(':').map(Number);
+
+            if (endHour < 9 || endHour > 21 || (endHour === 21 && endMinute > 0)) {
+                newErrors.endTime = "End time must be between 9:00 AM and 9:00 PM.";
+            }
+        }
+
+        // Duration validation (ensure appointment is between 20 mins and 1 hour)
+        if (newSlot.startTime && newSlot.endTime) {
+            const start = newSlot.startTime.split(':').map(Number);
+            const end = newSlot.endTime.split(':').map(Number);
+
+            // Calculate duration in minutes
+            const startMinutes = start[0] * 60 + start[1];
+            const endMinutes = end[0] * 60 + end[1];
+            const durationMinutes = endMinutes - startMinutes;
+
+            if (durationMinutes <= 0) {
+                newErrors.endTime = "End time must be after start time.";
+            } else if (durationMinutes > 60) {
+                newErrors.endTime = "Appointment duration cannot exceed 1 hour.";
+            } else if (durationMinutes < 20) {
+                newErrors.endTime = "Appointment must be at least 20 minutes.";
+            }
+        }
+
+        // Check for overlapping slots
+        if (newSlot.date && newSlot.startTime && newSlot.endTime && !newErrors.date && !newErrors.startTime && !newErrors.endTime) {
+            const newSlotStart = new Date(`${newSlot.date}T${newSlot.startTime}`);
+            const newSlotEnd = new Date(`${newSlot.date}T${newSlot.endTime}`);
+
+            // Check against existing slots
+            const allSlots = [...categorizedSlots.today, ...categorizedSlots.tomorrow, ...categorizedSlots.future];
+
+            for (const slot of allSlots) {
+                const existingSlotDate = new Date(slot.date).toISOString().split('T')[0];
+                if (existingSlotDate === newSlot.date) {
+                    const existingSlotStart = new Date(`${existingSlotDate}T${slot.startTime}`);
+                    const existingSlotEnd = new Date(`${existingSlotDate}T${slot.endTime}`);
+
+                    // Check for overlap
+                    if (
+                        (newSlotStart < existingSlotEnd && newSlotEnd > existingSlotStart) ||
+                        (existingSlotStart < newSlotEnd && existingSlotEnd > newSlotStart)
+                    ) {
+                        newErrors.time = "This slot overlaps with an existing slot.";
+                        break;
+                    }
+                }
+            }
         }
 
         setErrors(newErrors);
@@ -121,7 +205,9 @@ const DoctorAppointmentDashboard = ({ isSidebarVisible }) => {
         date: "",
         startTime: "",
         endTime: "",
+        time: "" // For overlapping errors
     });
+
     useEffect(() => {
         const fetchFreeSlots = async () => {
             try {
@@ -140,7 +226,6 @@ const DoctorAppointmentDashboard = ({ isSidebarVisible }) => {
             fetchFreeSlots();
         }
     }, [email]);
-
 
     const handleAddFreeSlot = () => {
         if (!validateSlot()) {
@@ -161,7 +246,6 @@ const DoctorAppointmentDashboard = ({ isSidebarVisible }) => {
         setErrors({}); // Clear errors after successful submission
     };
 
-
     useEffect(() => {
         if (!email) {
             console.error("Email is missing in AuthContext.");
@@ -178,23 +262,22 @@ const DoctorAppointmentDashboard = ({ isSidebarVisible }) => {
             });
 
             if (response.status === 201) {
-                fetchCategorizedSlots(); // Refresh the available slots
+                // Fetch the updated categorized slots after saving
+                fetchCategorizedSlots();
             } else {
                 alert(`Failed to save the slot. Status code: ${response.status}`);
             }
         } catch (error) {
-            if (error.response && error.response.data.error) {
-                alert(`Failed to save the slot. Error: ${error.response.data.error}`); // Show the overlap error
+            if (error.response) {
+                alert(`Failed to save the slot. Error: ${error.response.data.error}`);
             } else {
                 alert(`Failed to save the slot. Error: ${error.message}`);
             }
         }
     };
 
-
     const handleAccept = async (appointment) => {
         try {
-
             const response = await axios.put('http://localhost:5000/api/auth/update-appointment-status', {
                 appointmentId: appointment._id,
                 status: 'Confirmed',
@@ -202,7 +285,7 @@ const DoctorAppointmentDashboard = ({ isSidebarVisible }) => {
 
             if (response.status === 200) {
                 // Remove from pending appointments
-                alert(appointment.patientEmail)
+                alert(appointment.patientEmail);
                 setPendingAppointments((prev) => prev.filter((a) => a._id !== appointment._id));
 
                 // Add to future appointments
@@ -212,11 +295,6 @@ const DoctorAppointmentDashboard = ({ isSidebarVisible }) => {
             console.error('Error accepting appointment:', error);
         }
     };
-
-
-
-
-
 
     // Calendar events state
     const [calendarEvents, setCalendarEvents] = useState([]);
@@ -232,6 +310,7 @@ const DoctorAppointmentDashboard = ({ isSidebarVisible }) => {
         startTime: '',
         endTime: ''
     });
+
     useEffect(() => {
         const appointmentEvents = futureAppointments.map(appt => ({
             title: `${appt.patientName} - ${appt.reason}`,
@@ -245,13 +324,14 @@ const DoctorAppointmentDashboard = ({ isSidebarVisible }) => {
             return [...filteredEvents, ...appointmentEvents];
         });
     }, [futureAppointments]);
+
     useEffect(() => {
         if (futureAppointments.length > 0) {
             const appointmentEvents = futureAppointments.map((appt) => ({
                 title: '', // Keep title empty for dots
                 start: new Date(appt.date), // Start at the date of the appointment
-                end: new Date(appt.date),   // End at the same date (all-day event)
-                type: 'appointment',        // Custom type to identify these events
+                end: new Date(appt.date), // End at the same date (all-day event)
+                type: 'appointment', // Custom type to identify these events
             }));
 
             setCalendarEvents((prevEvents) => {
@@ -366,6 +446,24 @@ const DoctorAppointmentDashboard = ({ isSidebarVisible }) => {
 
     const monthYear = moment(currentDate).format('MMMM YYYY'); // Get the month and year
 
+    // Function to get time slots dropdown options (at 30 min intervals)
+    // Function to get time slots dropdown options (at 30 min intervals)
+    const getTimeOptions = () => {
+        const options = [];
+        for (let hour = 9; hour <= 21; hour++) {
+            for (let minute of ['00', '30']) {
+                // Don't include 9:30 PM as it would make appointments go beyond business hours
+                if (hour === 21 && minute === '30') continue;
+
+                const formattedHour = hour.toString().padStart(2, '0');
+                options.push(`${formattedHour}:${minute}`);
+            }
+        }
+        return options;
+    };
+
+    const timeOptions = getTimeOptions();
+
     return (
         <div className={`doctor-dashboard-advanced ${isSidebarVisible ? "" : "sidebar-hidden"}`}>
             {/* Calendar Section */}
@@ -395,8 +493,8 @@ const DoctorAppointmentDashboard = ({ isSidebarVisible }) => {
                                     <div
                                         style={{
                                             backgroundColor: '#FF69B4', // Pink dot color
-                                            borderRadius: '50%',       // Make it circular
-                                            height: '10px',            // Dot size
+                                            borderRadius: '50%', // Make it circular
+                                            height: '10px', // Dot size
                                             width: '10px',
                                         }}
                                     ></div>
@@ -412,15 +510,14 @@ const DoctorAppointmentDashboard = ({ isSidebarVisible }) => {
                             </div>
 
                         ),
-
                     }}
                     eventPropGetter={(event) => {
                         if (event.type === 'appointment') {
                             return {
                                 style: {
-                                    backgroundColor: '#FF69B4', // Blue dot
-                                    borderRadius: '50%',       // Make it a circle
-                                    height: '10px',            // Adjust dot size
+                                    backgroundColor: '#FF69B4', // Pink dot
+                                    borderRadius: '50%', // Make it a circle
+                                    height: '10px', // Adjust dot size
                                     width: '10px',
                                     position: 'relative',
                                     top: '-15px'
@@ -433,8 +530,7 @@ const DoctorAppointmentDashboard = ({ isSidebarVisible }) => {
             </div>
 
             {/* Dashboard Cards */}
-
-            <div className=' dashboard-grid-advanced'>
+            <div className='dashboard-grid-advanced'>
                 {/* Appointments Card */}
                 <div
                     className="dashboard-card appointments-card"
@@ -452,9 +548,6 @@ const DoctorAppointmentDashboard = ({ isSidebarVisible }) => {
                     </div>
                 </div>
 
-                {/* Free Slots Management Card */}
-                {/* Free Slots Management Card */}
-                {/* Free Slots Management Card */}
                 {/* Free Slots Management Card */}
                 <div
                     className="dashboard-card slots-card"
@@ -527,9 +620,6 @@ const DoctorAppointmentDashboard = ({ isSidebarVisible }) => {
                     </div>
                 </div>
 
-
-
-
                 {/* Appointments Modal */}
                 {isAppointmentModalOpen && (
                     <div
@@ -576,7 +666,6 @@ const DoctorAppointmentDashboard = ({ isSidebarVisible }) => {
                                     )}
                                 </div>
 
-
                                 {/* Future Appointments Section */}
                                 <div className="modal-section future-section">
                                     <h3>Future Appointments</h3>
@@ -596,9 +685,7 @@ const DoctorAppointmentDashboard = ({ isSidebarVisible }) => {
                                         ))
                                     )}
                                 </div>
-
                             </div>
-
                         </div>
                     </div>
                 )}
@@ -621,29 +708,86 @@ const DoctorAppointmentDashboard = ({ isSidebarVisible }) => {
                                     id="slot-date"
                                     value={newSlot.date}
                                     onChange={(e) => setNewSlot({ ...newSlot, date: e.target.value })}
+                                    min={new Date().toISOString().split('T')[0]} // Prevent past dates
+                                    max={new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString().split('T')[0]} // Limit to 3 months
                                 />
                                 {errors.date && <p className="error-message">{errors.date}</p>}
                             </div>
                             <div className="form-group">
                                 <label htmlFor="start-time">Start Time</label>
-                                <input
-                                    type="time"
+                                <select
                                     id="start-time"
                                     value={newSlot.startTime}
-                                    onChange={(e) => setNewSlot({ ...newSlot, startTime: e.target.value })}
-                                />
+                                    onChange={(e) => {
+                                        const startTime = e.target.value;
+                                        const startTimeComponents = startTime.split(':').map(Number);
+                                        let endTime = newSlot.endTime;
+
+                                        // If there's a valid start time and either no end time or the end time is before or equal to start time
+                                        if (startTime && (!endTime || endTime <= startTime)) {
+                                            // Calculate end time as default appointment length (e.g., 30 minutes)
+                                            const startMinutes = startTimeComponents[1];
+                                            let endHour = startTimeComponents[0];
+                                            let endMinute = startMinutes + 30; // Default to 30 min appointment
+
+                                            if (endMinute >= 60) {
+                                                endHour += 1;
+                                                endMinute -= 60;
+                                            }
+
+                                            // Don't allow slots that end after 9 PM
+                                            if (endHour <= 21 || (endHour === 21 && endMinute === 0)) {
+                                                endTime = `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
+                                            } else {
+                                                // If adding time would go past 9 PM, set to 9 PM
+                                                endTime = "21:00";
+                                            }
+                                        }
+
+                                        setNewSlot({ ...newSlot, startTime, endTime });
+                                    }}
+                                >
+                                    <option value="">Select Start Time</option>
+                                    {timeOptions.map((time, index) => (
+                                        <option key={`start-${index}`} value={time}>
+                                            {time}
+                                        </option>
+                                    ))}
+                                </select>
                                 {errors.startTime && <p className="error-message">{errors.startTime}</p>}
                             </div>
                             <div className="form-group">
                                 <label htmlFor="end-time">End Time</label>
-                                <input
-                                    type="time"
+                                <select
                                     id="end-time"
                                     value={newSlot.endTime}
                                     onChange={(e) => setNewSlot({ ...newSlot, endTime: e.target.value })}
-                                />
+                                >
+                                    <option value="">Select End Time</option>
+                                    {timeOptions
+                                        .filter(time => time > newSlot.startTime) // Only show times after selected start time
+                                        .filter(time => {
+                                            // Only show end times that would create 20 min to 1 hour slots
+                                            if (!newSlot.startTime) return true;
+
+                                            const [startHour, startMinute] = newSlot.startTime.split(':').map(Number);
+                                            const [endHour, endMinute] = time.split(':').map(Number);
+
+                                            const startMinutes = startHour * 60 + startMinute;
+                                            const endMinutes = endHour * 60 + endMinute;
+                                            const duration = endMinutes - startMinutes;
+
+                                            // Allow durations between 20 and 60 minutes
+                                            return duration >= 20 && duration <= 60;
+                                        }).map((time, index) => (
+                                            <option key={`end-${index}`} value={time}>
+                                                {time}
+                                            </option>
+                                        ))}
+                                </select>
                                 {errors.endTime && <p className="error-message">{errors.endTime}</p>}
                             </div>
+                            {errors.time && <p className="error-message">{errors.time}</p>}
                             <button
                                 className="save-button"
                                 onClick={handleAddFreeSlot}

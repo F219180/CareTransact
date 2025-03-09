@@ -8,6 +8,7 @@ const controllers = require('../controller/auth_controller');
 router.post('/patients', controllers.addPatient);
 router.get('/patient-details', controllers.getPatientDetails);
 router.put('/update-patient', controllers.updatePatient);
+router.get('/insurance-companies', controllers.getInsuranceCompanies);
 
 // Doctor Routes
 router.post('/get-doctor', controllers.getDoctorDetails);
@@ -62,6 +63,15 @@ router.get("/medicines/check", controllers.checkMedicines);
 // pharmacist
 
 router.get('/pharmacist/medicines', controllers.getPharmacistMedicines);
+
+
+
+//  lab attendent
+// Lab Attendee Routes
+router.get('/lab-attendee-tests', controllers.getLabAttendeeTests); // Fetch all lab tests
+router.get('/patient-name', controllers.getPatientName);
+router.put('/update-lab-test-status', controllers.updateLabTestStatus); // Update lab test status
+router.get('/lab-tests-by-prescription', controllers.getLabTestsByPrescriptionId); // Fetch lab tests by prescription ID
 
 
 

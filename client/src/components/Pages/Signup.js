@@ -7,13 +7,14 @@ import { auth } from "../firebase.js";
 import { Toaster, toast } from "sonner";
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import axios from 'axios';
-import { db } from "../firebase"; // Adjust the path to your firebase.js
+import { db } from "../firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 
 function Signup() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [insuranceCompanyName, setInsuranceCompanyName] = useState('');
     const [isPasswordFocused, setIsPasswordFocused] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -23,28 +24,37 @@ function Signup() {
         specialChar: false,
         passwordMatch: false
     });
-
     const [emailVerificationSent, setEmailVerificationSent] = useState(false);
     const [emailVerifiedForCurrentSession, setEmailVerifiedForCurrentSession] = useState(false);
+    const [insuranceCompanies, setInsuranceCompanies] = useState([]);
 
-
+    // Fetch insurance companies on component mount
     useEffect(() => {
-        // Real-time listener for authentication state
+        const fetchInsuranceCompanies = async () => {
+            try {
+                const response = await axios.get('http://localhost:5000/api/auth/insurance-companies');
+                setInsuranceCompanies(response.data);
+            } catch (error) {
+                console.error('Error fetching insurance companies:', error);
+                toast.error('Failed to load insurance companies');
+            }
+        };
+
+        fetchInsuranceCompanies();
+    }, []);
+
+    // Existing useEffect for auth state
+    useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
                 try {
-                    // Manually reload user to get the latest verification status
                     await reload(user);
-
-                    // Check if verification email is sent
-                    if (!user.emailVerified) {
-                        if (!emailVerificationSent) {
-                            toast.info("Verification email sent. Please check your inbox.", {
-                                style: { backgroundColor: "#2196f3", color: "#fff" },
-                                duration: 5000
-                            });
-                            setEmailVerificationSent(true);
-                        }
+                    if (!user.emailVerified && !emailVerificationSent) {
+                        toast.info("Verification email sent. Please check your inbox.", {
+                            style: { backgroundColor: "#2196f3", color: "#fff" },
+                            duration: 5000
+                        });
+                        setEmailVerificationSent(true);
                     }
                 } catch (error) {
                     console.error("Error checking verification status:", error);
@@ -52,119 +62,109 @@ function Signup() {
             }
         });
 
-        // Periodic check for email verification and Firestore email existence
         const verificationCheckInterval = () => {
             const interval = setInterval(async () => {
                 const user = auth.currentUser;
-
                 if (user && user.email === email) {
                     try {
                         await reload(user);
-
-                        // Only show the success toast if the email is verified and exists in Firestore
                         if (user.emailVerified && email !== "") {
-                            const userRef = doc(db, "users", user.uid); // Use uid to check in the users collection
+                            const userRef = doc(db, "users", user.uid);
                             const userDoc = await getDoc(userRef);
-
-                            if (userDoc.exists()) {
-                                if (!emailVerifiedForCurrentSession) {
-                                    setEmailVerifiedForCurrentSession(true); // Prevent repeated toasts
-                                    toast.success("Email verified! You can now login.", {
-                                        style: { backgroundColor: "#4caf50", color: "#fff" },
-                                        duration: 5000
-                                    });
-                                }
-                                clearInterval(interval); // Stop checking once verified and email exists in Firestore
+                            if (userDoc.exists() && !emailVerifiedForCurrentSession) {
+                                setEmailVerifiedForCurrentSession(true);
+                                toast.success("Email verified! You can now login.", {
+                                    style: { backgroundColor: "#4caf50", color: "#fff" },
+                                    duration: 5000
+                                });
+                                clearInterval(interval);
                             }
                         }
                     } catch (error) {
-                        console.error("Error during periodic verification check:", error);
+                        console.error("Error during verification check:", error);
                     }
                 }
-            }, 3000); // Check every 3 seconds
-
+            }, 3000);
             return interval;
         };
 
-        // Start the verification check interval
         const interval = verificationCheckInterval();
-
-        // Cleanup subscriptions and interval on component unmount
         return () => {
             unsubscribe();
             clearInterval(interval);
         };
     }, [email, emailVerifiedForCurrentSession, emailVerificationSent]);
 
-
+    // Existing password validation and handler functions
     const validatePassword = (password, confirmPassword) => {
         const lengthValid = password.length >= 6;
         const numberValid = /\d/.test(password);
         const specialCharValid = /[!@#$%^&*(),.?":{}|<>]/.test(password);
         const passwordMatchValid = password === confirmPassword && confirmPassword !== '';
-
-        setValidations({
-            length: lengthValid,
-            number: numberValid,
-            specialChar: specialCharValid,
-            passwordMatch: passwordMatchValid
-        });
+        setValidations({ length: lengthValid, number: numberValid, specialChar: specialCharValid, passwordMatch: passwordMatchValid });
     };
 
+    // Replace your current getPasswordStrength function with this:
     const getPasswordStrength = () => {
+        let strength = {
+            width: '0%',
+            backgroundColor: '#e0e0e0',
+            text: ''
+        };
+
         if (validations.length && validations.number && validations.specialChar) {
-            return { width: '100%', backgroundColor: '#00ff00', text: 'Strong' };
+            strength = { width: '100%', backgroundColor: '#4caf50', text: 'Strong' }; // Green
         } else if (validations.length && validations.number) {
-            return { width: '66%', backgroundColor: '#ffa500', text: 'Medium' };
+            strength = { width: '66%', backgroundColor: '#ffa500', text: 'Medium' }; // Orange
         } else if (validations.length) {
-            return { width: '33%', backgroundColor: '#ff0000', text: 'Weak' };
+            strength = { width: '33%', backgroundColor: '#ff0000', text: 'Weak' }; // Red
         }
-        return { width: '0%', backgroundColor: '#e0e0e0', text: '' };
+
+        return strength;
     };
-    const handleSaveEmailToDatabase = async (email, password, uid) => {
+
+    // Update the password strength indicator in your JSX:
+    // Replace your current password strength container with this:
+    {
+        isPasswordFocused && password && (
+            <div className="password-strength-container">
+                <div className="password-strength-bar">
+                    <div style={{
+                        width: getPasswordStrength().width,
+                        backgroundColor: getPasswordStrength().backgroundColor
+                    }}></div>
+                </div>
+                <span className="strength-text">{getPasswordStrength().text}</span>
+            </div>
+        )
+    }
+
+    const handleSaveEmailToDatabase = async (email, password, uid, insuranceCompanyName) => {
         try {
-            // Save email, password, date, and uid to the users collection
-            const userRef = doc(db, "users", uid); // Use uid as the document ID
-            await setDoc(userRef, {
-                email,
-                createdAt: new Date(),
-                uid
-            });
-            const response = await axios.post('http://localhost:5000/api/auth/patients', { email });
-            if (response.status === 201) {
-                console.log("Email successfully saved to the database.");
-            }
+            const userRef = doc(db, "users", uid);
+            await setDoc(userRef, { email, createdAt: new Date(), uid, insuranceCompanyName });
+            await axios.post('http://localhost:5000/api/auth/patients', { email, insuranceCompanyName });
         } catch (error) {
-            console.error("Error saving email to Firestore or database:", error);
+            console.error("Error saving user data:", error);
         }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
+        if (!insuranceCompanyName) {
+            toast.error("Please select an insurance company.");
+            return;
+        }
         try {
-            // Create the user with email and password
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-            const user = userCredential.user;
-
-            // Send the verification email
-            await sendEmailVerification(user);
-
-            toast.info("Verification email sent. Please check your inbox.", {
-                style: { backgroundColor: "#2196f3", color: "#fff" },
-            });
-
-            // Save email, password, and uid to Firestore (users collection)
-            await handleSaveEmailToDatabase(email, password, user.uid);
-
+            await sendEmailVerification(userCredential.user);
+            await handleSaveEmailToDatabase(email, password, userCredential.user.uid, insuranceCompanyName);
+            toast.info("Verification email sent. Please check your inbox.");
         } catch (error) {
-            console.error("Error during signup:", error);
-            toast.error(`Signup failed: ${error.message}`, {
-                style: { backgroundColor: "#f44336", color: "#fff" },
-            });
+            console.error("Signup failed:", error);
+            toast.error(`Signup failed: ${error.message}`);
         }
     };
-
 
     const handlePasswordChange = (e) => {
         const newPassword = e.target.value;
@@ -178,30 +178,21 @@ function Signup() {
         validatePassword(password, newConfirmPassword);
     };
 
-    const validatePakistaniEmail = (email) => {
-        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(pk|com|org|edu|gov|mil)$/;
-        return emailRegex.test(email);
-    };
-    const togglePasswordVisibility = (e) => {
-        e.preventDefault();
-        setShowPassword(!showPassword);
-    };
-
-    const toggleConfirmPasswordVisibility = (e) => {
-        e.preventDefault();
-        setShowConfirmPassword(!showConfirmPassword);
-    };
-
-    const allValid = Object.values(validations).every(Boolean);
+    const validatePakistaniEmail = (email) => /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(pk|com|org|edu|gov|mil)$/.test(email);
+    const togglePasswordVisibility = (e) => { e.preventDefault(); setShowPassword(!showPassword); };
+    const toggleConfirmPasswordVisibility = (e) => { e.preventDefault(); setShowConfirmPassword(!showConfirmPassword); };
+    const allValid = Object.values(validations).every(Boolean) && insuranceCompanyName !== '';
 
     return (
         <>
             <Header />
-            <Toaster position='top-center' richcolors closeButton />
+            <Toaster position='top-center' richColors closeButton />
             <div className="signup-container">
                 <form className="signup-form" onSubmit={handleSubmit}>
                     <div className="signup-content">
                         <h2>Signup</h2>
+
+                        {/* Email Input */}
                         <div className="email-input-container">
                             <input
                                 type="text"
@@ -215,6 +206,25 @@ function Signup() {
                                 <p className="error-text">Invalid email format!</p>
                             )}
                         </div>
+
+                        {/* Insurance Company Dropdown */}
+                        <div className="email-input-container">
+                            <select
+                                value={insuranceCompanyName}
+                                onChange={(e) => setInsuranceCompanyName(e.target.value)}
+                                required
+                                className="insurance-dropdown"
+                            >
+                                <option value="">Select Insurance Company</option>
+                                {insuranceCompanies.map(company => (
+                                    <option key={company._id} value={company.name}>
+                                        {company.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Password Input */}
                         <div className="password-input-container">
                             <input
                                 type={showPassword ? "text" : "password"}
@@ -225,28 +235,25 @@ function Signup() {
                                 required
                                 placeholder="Password"
                             />
-                            <span
-                                className="password-toggle-icon"
-                                onClick={togglePasswordVisibility}
-                                onMouseDown={(e) => e.preventDefault()}
-                            >
+                            <span className="password-toggle-icon" onClick={togglePasswordVisibility}>
                                 {showPassword ? <FaEye /> : <FaEyeSlash />}
                             </span>
                         </div>
+
+                        {/* Password Strength Indicator */}
                         {isPasswordFocused && password && (
                             <div className="password-strength-container">
                                 <div className="password-strength-bar">
-                                    <div
-                                        className="strength-fill"
-                                        style={{
-                                            width: getPasswordStrength().width,
-                                            backgroundColor: getPasswordStrength().backgroundColor
-                                        }}
-                                    ></div>
+                                    <div style={{
+                                        width: getPasswordStrength().width,
+                                        backgroundColor: getPasswordStrength().backgroundColor
+                                    }}></div>
                                 </div>
                                 <span className="strength-text">{getPasswordStrength().text}</span>
                             </div>
                         )}
+
+                        {/* Confirm Password Input */}
                         <div className="password-input-container">
                             <input
                                 type={showConfirmPassword ? "text" : "password"}
@@ -255,17 +262,15 @@ function Signup() {
                                 required
                                 placeholder="Confirm Password"
                             />
-                            <span
-                                className="password-toggle-icon"
-                                onClick={toggleConfirmPasswordVisibility}
-                                onMouseDown={(e) => e.preventDefault()}
-                            >
+                            <span className="password-toggle-icon" onClick={toggleConfirmPasswordVisibility}>
                                 {showConfirmPassword ? <FaEye /> : <FaEyeSlash />}
                             </span>
                         </div>
                         {confirmPassword && !validations.passwordMatch && (
                             <p className="password-match-error">Passwords do not match</p>
                         )}
+
+                        {/* Submit Section */}
                         <div className="signup-footer">
                             <button
                                 type="submit"

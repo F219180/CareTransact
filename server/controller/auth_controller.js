@@ -5,8 +5,14 @@ const mongoose = require('mongoose');
 // Patient Controllers
 const addPatient = async (req, res) => {
     try {
-        const { email } = req.body;
-        const patient = new Patient({ email });
+        const { email, insuranceCompanyName } = req.body;
+        // Ensure required fields are provided (adjust according to your schema)
+        const patient = new Patient({
+            email,
+            insuranceProvider: insuranceCompanyName,
+            name: "Default Name", // Temporary value; collect this in the form if required
+            password: "tempPassword" // Temporary value; adjust as per your auth flow
+        });
         await patient.save();
         res.status(201).json({ message: 'Patient email saved successfully', patient });
     } catch (error) {
@@ -14,8 +20,6 @@ const addPatient = async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 };
-
-
 
 
 const getPatientDetails = async (req, res) => {
@@ -34,14 +38,34 @@ const getPatientDetails = async (req, res) => {
 
 const updatePatient = async (req, res) => {
     try {
-        const { email, ...updatedFields } = req.body;
-        const patient = await Patient.findOneAndUpdate({ email }, updatedFields, { new: true });
+        const { email, insuranceProvider, ...updatedFields } = req.body;
+
+        // Update patient details, including insurance provider
+        const patient = await Patient.findOneAndUpdate(
+            { email },
+            { ...updatedFields, insuranceProvider },  // ✅ Now updating insurance provider
+            { new: true }
+        );
+
         if (!patient) {
             return res.status(404).json({ error: 'Patient not found' });
         }
+
         res.status(200).json({ message: 'Patient details updated', patient });
     } catch (error) {
         console.error('Error updating patient details:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+
+// auth_controller.js
+const getInsuranceCompanies = async (req, res) => {
+    try {
+        const companies = await InsuranceCompany.find({}, 'name');
+        res.status(200).json(companies);
+    } catch (error) {
+        console.error('Error fetching insurance companies:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 };
@@ -908,10 +932,153 @@ const getPharmacistMedicines = async (req, res) => {
 };
 
 
+//////////////////////  lab attendant
+
+const getLabAttendeeTests = async (req, res) => {
+    try {
+        console.log("✅ API HIT: /api/auth/lab-attendee-tests"); // 🔍 Log to confirm API call
+
+        // Fetch all lab tests
+        const labTests = await LabTest.find().populate('prescriptionId');
+        console.log("🔍 Fetched lab tests:", labTests); // Debugging log
+
+        if (!labTests.length) {
+            console.log("⚠️ No lab tests found in DB.");
+            return res.status(404).json({ message: 'No lab tests found' });
+        }
+
+        // Fetch prescriptions
+        const prescriptionIds = [...new Set(labTests.map(test => test.prescriptionId?._id.toString()))];
+        console.log("🔍 Prescription IDs:", prescriptionIds);
+
+        const prescriptions = await Prescription.find({ _id: { $in: prescriptionIds } });
+        console.log("🔍 Fetched prescriptions:", prescriptions);
+
+        if (!prescriptions.length) {
+            console.log("⚠️ No prescriptions found for lab tests.");
+            return res.status(404).json({ message: 'No prescriptions found' });
+        }
+
+        res.status(200).json(labTests); // ✅ If successful, send response
+    } catch (error) {
+        console.error("❌ ERROR in getLabAttendeeTests:", error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+
+const updateLabTestStatus = async (req, res) => {
+    try {
+        const { prescriptionId, testId, newStatus } = req.body;
+
+        if (!prescriptionId || !testId || !newStatus) {
+            return res.status(400).json({ error: "PrescriptionId, testId, and newStatus are required." });
+        }
+
+        // Find the lab test entry for this prescription
+        const labTest = await LabTest.findOne({ prescriptionId });
+
+        if (!labTest) {
+            return res.status(404).json({ error: "Lab test not found." });
+        }
+
+        // Find the specific test within the labTests array
+        const testIndex = labTest.labTests.findIndex(test => test._id.toString() === testId);
+
+        if (testIndex === -1) {
+            return res.status(404).json({ error: "Specific test not found." });
+        }
+
+        // Update the status of the specific test
+        labTest.labTests[testIndex].status = newStatus;
+        labTest.updatedAt = Date.now();
+
+        await labTest.save();
+
+        res.status(200).json({
+            message: "Lab test status updated successfully.",
+            labTest,
+            allProcessed: labTest.labTests.every(test => test.status === "Completed")
+        });
+    } catch (error) {
+        console.error('Error updating lab test status:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+const getLabTestsByPrescriptionId = async (req, res) => {
+    try {
+        const { prescriptionId } = req.query;
+
+        if (!prescriptionId) {
+            return res.status(400).json({ error: "Prescription ID is required." });
+        }
+
+        // Find the lab test for this prescription
+        const labTest = await LabTest.findOne({ prescriptionId }).populate('prescriptionId');
+
+        if (!labTest) {
+            return res.status(404).json({ error: "No lab tests found for this prescription." });
+        }
+
+        // Get prescription details
+        const prescription = labTest.prescriptionId;
+
+        // Get doctor and patient details
+        const doctor = await Doctor.findOne({ email: prescription.doctorEmail });
+        const patient = await Patient.findOne({ email: prescription.patientEmail });
+
+        const result = {
+            id: labTest._id.toString(),
+            prescriptionId: prescription._id.toString(),
+            patientName: patient?.name || "Unknown Patient",
+            patientId: patient?._id.toString() || "Unknown",
+            doctorName: doctor?.name || "Unknown Doctor",
+            labAttendee: "Assigned Lab Attendee", // Consider adding this to your schema
+            date: prescription.dateIssued.toISOString().split('T')[0],
+            status: labTest.labTests.every(test => test.status === "Completed") ? "Processed" : "Processing",
+            urgency: prescription.urgency || "Normal", // Consider adding this to your schema
+            labTests: labTest.labTests.map(test => ({
+                id: test._id.toString(),
+                testName: test.testName,
+                type: "Lab Test", // Consider adding this to your schema if you need test types
+                status: test.status,
+                comments: test.comments || ""
+            }))
+        };
+
+        res.status(200).json(result);
+    } catch (error) {
+        console.error('Error fetching lab tests by prescription ID:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+const getPatientName = async (req, res) => {
+    try {
+        const { email } = req.query;
+        const patient = await Patient.findOne({ email });
+        if (!patient) {
+            return res.status(404).json({ error: 'Patient not found' });
+        }
+        res.status(200).json({
+            name: patient.name || email, // Return the patient's name or email if name is not available
+            email: patient.email,
+            age: patient.age,
+            gender: patient.gender
+        });
+    } catch (error) {
+        console.error('Error fetching patient details:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+
 module.exports = {
     addPatient,
     getPatientDetails,
     updatePatient,
+    getInsuranceCompanies,
     getDoctorDetails,
     getDoctorProfile,
     updateDoctor,
@@ -938,5 +1105,9 @@ module.exports = {
     checkLabTests,
     createPharmacyRequest,
     checkMedicines,
-    getPharmacistMedicines
+    getPharmacistMedicines,
+    getLabAttendeeTests,
+    updateLabTestStatus,
+    getLabTestsByPrescriptionId,
+    getPatientName
 };
