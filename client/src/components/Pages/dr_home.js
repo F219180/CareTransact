@@ -3,8 +3,8 @@ import "./dr_home.css";
 import editIcon from "../../assets/images/edit_profile.png";
 import { useAuth } from "../../context/AuthContext";
 import axios from "axios";
-import defaultimg from "../../assets/images/image.jpg"
-import bg from "../../assets/images/patinet_bg.avif"
+import defaultimg from "../../assets/images/image.jpg";
+import bg from "../../assets/images/patinet_bg.avif";
 
 const DoctorProfile = ({ isSidebarVisible, toggleSidebar }) => {
     const [isEditMode, setIsEditMode] = useState(false);
@@ -16,7 +16,7 @@ const DoctorProfile = ({ isSidebarVisible, toggleSidebar }) => {
         profilePicture: "N/A",
         gender: "Other",
         consultationFee: 0,
-        yearOfExperience: 0, // Added yearOfExperience
+        yearOfExperience: 0,
     });
 
     const [uploadedImage, setUploadedImage] = useState(null);
@@ -37,7 +37,6 @@ const DoctorProfile = ({ isSidebarVisible, toggleSidebar }) => {
 
         fetchDoctorDetails();
     }, [email]);
-
 
     const toggleEditMode = () => {
         setIsEditMode(!isEditMode);
@@ -68,18 +67,6 @@ const DoctorProfile = ({ isSidebarVisible, toggleSidebar }) => {
         });
     };
 
-    const handleCconsultationChange = (e) => {
-        const { name, value } = e.target;
-        if (name === "consultationFee" && value < 0) {
-            return; // Prevent setting negative values
-        }
-        setProfileData({
-            ...profileData,
-            [name]: value,
-        });
-    };
-
-
     const addService = () => {
         setProfileData({
             ...profileData,
@@ -109,15 +96,29 @@ const DoctorProfile = ({ isSidebarVisible, toggleSidebar }) => {
     };
 
     return (
-        <div className={`doc-home-container ${isSidebarVisible ? "sidebar-visible" : "sidebar-hidden"}`}
+        <div
+            className={`doc-home-container ${isSidebarVisible ? "sidebar-visible" : "sidebar-hidden"}`}
             style={{
                 backgroundImage: `url(${bg})`,
-                backgroundSize: 'cover', // Ensures the image covers the entire container
-                backgroundPosition: 'center', // Centers the image
-                backgroundRepeat: 'no-repeat', // Prevents repeating the image
-            }}>
-            <div className="scrollable-container">
-                <div className={`doctor-profile-card ${isSidebarVisible ? "with-sidebar" : ""}`}>
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                minHeight: '100vh',
+                paddingTop: '80px', // Adds space from the top to bring the card lower
+            }}
+        >
+            <div className="scrollable-container" style={{ width: '100%', maxWidth: '900px' }}>
+                <div
+                    className={`doctor-profile-card ${isSidebarVisible ? "with-sidebar" : ""}`}
+                    style={{
+                        margin: '0 auto',
+                        marginTop: '2rem',
+                        marginBottom: '2rem',
+                    }}
+                >
                     <div className="profile-image-container-doc">
                         <img
                             src={uploadedImage || (profileData.profilePicture === "N/A" ? defaultimg : profileData.profilePicture)}
@@ -140,10 +141,10 @@ const DoctorProfile = ({ isSidebarVisible, toggleSidebar }) => {
                         </button>
                     </div>
                     <div className={`profile-details ${isEditMode ? "scrollable-form-container" : ""}`}>
-                        <h3>
+                        <div className="profile-field">
                             {isEditMode ? (
                                 <>
-                                    <h5>Full Name</h5>
+                                    <h3 className="field-label">Full Name</h3>
                                     <input
                                         type="text"
                                         name="name"
@@ -153,11 +154,14 @@ const DoctorProfile = ({ isSidebarVisible, toggleSidebar }) => {
                                     />
                                 </>
                             ) : (
-                                profileData.name
+                                <>
+                                    <h3>{profileData.name}</h3>
+                                </>
                             )}
-                        </h3>
-                        <h5><b>Specialization</b></h5>
-                        <p>
+                        </div>
+
+                        <div className="profile-field">
+                            <h5 className="field-label"><b>Specialization</b></h5>
                             {isEditMode ? (
                                 <input
                                     type="text"
@@ -167,11 +171,12 @@ const DoctorProfile = ({ isSidebarVisible, toggleSidebar }) => {
                                     className="profile-input"
                                 />
                             ) : (
-                                profileData.specialization
+                                <p className="field-value">{profileData.specialization}</p>
                             )}
-                        </p>
-                        <h5><b>Medical Education</b></h5>
-                        <p>
+                        </div>
+
+                        <div className="profile-field">
+                            <h5 className="field-label"><b>Medical Education</b></h5>
                             {isEditMode ? (
                                 <input
                                     type="text"
@@ -181,11 +186,12 @@ const DoctorProfile = ({ isSidebarVisible, toggleSidebar }) => {
                                     className="profile-input"
                                 />
                             ) : (
-                                profileData.education
+                                <p className="field-value">{profileData.education}</p>
                             )}
-                        </p>
-                        <h5><b>Gender</b></h5>
-                        <p>
+                        </div>
+
+                        <div className="profile-field">
+                            <h5 className="field-label"><b>Gender</b></h5>
                             {isEditMode ? (
                                 <select
                                     name="gender"
@@ -198,72 +204,73 @@ const DoctorProfile = ({ isSidebarVisible, toggleSidebar }) => {
                                     <option value="Other">Other</option>
                                 </select>
                             ) : (
-                                profileData.gender
+                                <p className="field-value">{profileData.gender}</p>
                             )}
-                        </p>
-                        <h5><b>Years of Experience</b></h5>
-                        <p>
+                        </div>
+
+                        <div className="profile-field">
+                            <h5 className="field-label"><b>Years of Experience</b></h5>
                             {isEditMode ? (
                                 <input
                                     type="number"
                                     name="yearOfExperience"
                                     value={profileData.yearOfExperience}
                                     onChange={handleInputChange}
-                                    min="0" // Prevent negative input
+                                    min="0"
                                     className="profile-input"
                                 />
                             ) : (
-                                `${profileData.yearOfExperience} years`
+                                <p className="field-value">{`${profileData.yearOfExperience} years`}</p>
                             )}
-                        </p>
+                        </div>
 
-                        <h5><b>Consultation Fee</b></h5>
-                        <p>
+                        <div className="profile-field">
+                            <h5 className="field-label"><b>Consultation Fee</b></h5>
                             {isEditMode ? (
                                 <input
                                     type="number"
                                     name="consultationFee"
                                     value={profileData.consultationFee}
                                     onChange={handleInputChange}
-                                    min="0" // Prevent negative input
+                                    min="0"
                                     className="profile-input"
                                 />
                             ) : (
-                                `Rs. ${profileData.consultationFee}`
+                                <p className="field-value">{`Rs. ${profileData.consultationFee}`}</p>
                             )}
-                        </p>
-                        <h5><b>Services</b></h5>
-                        <ul>
-                            {profileData.services.map((service, index) => (
-                                <li key={index}>
-                                    {isEditMode ? (
-                                        <div className="number-control">
-                                            <input
-                                                type="text"
-                                                value={service}
-                                                onChange={(e) => handleServiceChange(index, e.target.value)}
-                                                className="profile-input"
-                                            />
-                                            <button className="plus" onClick={addService}>+</button>
-                                            <button className="minus" onClick={() => removeService(index)}>-</button>
-                                        </div>
-                                    ) : (
-                                        service
-                                    )}
-                                </li>
-                            ))}
-                        </ul>
-                        {isEditMode && profileData.services.length === 0 && (
-                            <div className="number-control">
-                                <input
-                                    type="text"
-                                    placeholder="Add a service"
-                                    className="profile-input"
-                                    onChange={(e) => handleServiceChange(0, e.target.value)}
-                                />
-                                <button className="plus" onClick={addService}>+</button>
+                        </div>
+
+                        <div className="profile-field">
+                            <h5 className="field-label"><b>Services</b></h5>
+                            <div className="field-value">
+                                <ul className="services-list">
+                                    {profileData.services.map((service, index) => (
+                                        <li key={index} className="service-item">
+                                            {isEditMode ? (
+                                                <div className="service-input-controls">
+                                                    <input
+                                                        type="text"
+                                                        value={service}
+                                                        onChange={(e) => handleServiceChange(index, e.target.value)}
+                                                        className="profile-input service-input"
+                                                    />
+                                                    <div className="service-buttons">
+                                                        <button className="minus" onClick={() => removeService(index)}>-</button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                service
+                                            )}
+                                        </li>
+                                    ))}
+                                </ul>
+                                {isEditMode && (
+                                    <div className="add-service">
+                                        <button className="plus" onClick={addService}>+ Add Service</button>
+                                    </div>
+                                )}
                             </div>
-                        )}
+                        </div>
                     </div>
                 </div>
             </div>

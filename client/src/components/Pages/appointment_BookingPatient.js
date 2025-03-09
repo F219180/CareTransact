@@ -41,33 +41,21 @@ const AppointmentBookingPatient = ({ isSidebarVisible }) => {
         }
     }, []);
 
+    // Replace the duplicate fetchFutureAppointments functions with this single one
     useEffect(() => {
         const fetchFutureAppointments = async () => {
             try {
-                const response = await axios.get("http://localhost:5000/api/auth/get-future-appointments", {
+                const response = await axios.get("http://localhost:5000/api/auth/get-future-pending-and-confirm", {
                     params: { email },
                 });
 
-                setAppointments(response.data);
-            } catch (error) {
-                console.error("Error fetching future appointments:", error.response?.data || error.message);
-                toast.error("Failed to fetch future appointments.");
-            }
-        };
+                // Make sure we're only getting appointments that belong to the current patient
+                const patientAppointments = response.data.filter(
+                    appointment => appointment.patientEmail === email &&
+                        ["Pending", "Confirmed"].includes(appointment.status)
+                );
 
-        if (activeView === "futureAppointments" && email) {
-            fetchFutureAppointments();
-        }
-    }, [activeView, email]);
-
-    useEffect(() => {
-        const fetchFutureAppointments = async () => {
-            try {
-                const response = await axios.get("http://localhost:5000/api/auth/get-future-appointments", {
-                    params: { email }, // Patient email from AuthContext
-                });
-
-                setAppointments(response.data); // Update state with future appointments
+                setAppointments(patientAppointments);
             } catch (error) {
                 console.error("Error fetching future appointments:", error.response?.data || error.message);
                 toast.error("Failed to fetch future appointments.");
