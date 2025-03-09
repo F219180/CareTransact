@@ -74,7 +74,10 @@ router.put('/update-lab-test-status', controllers.updateLabTestStatus); // Updat
 router.get('/lab-tests-by-prescription', controllers.getLabTestsByPrescriptionId); // Fetch lab tests by prescription ID
 
 
+///////  claim
 
+// Add these endpoints to your backend
+router.get('/claims/:prescriptionId', controllers.getClaimByPrescriptionId);
 
 
 router.use((err, req, res, next) => {

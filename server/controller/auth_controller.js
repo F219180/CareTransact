@@ -670,6 +670,7 @@ const savePrescription = async (req, res) => {
             followUpDate
         } = req.body;
 
+
         // Validate required fields
         if (!patientEmail || !patientAge || !patientGender || !diagnosis) {
             return res.status(400).json({ message: "All required fields must be filled." });
@@ -700,22 +701,57 @@ const savePrescription = async (req, res) => {
             doctorEmail,
             diagnosis,
             symptoms,
-            medicines: medications, // Ensure the frontend sends this as an array of objects
-            labTests: labTests, // Only include testName
+            medicines: medications,
+            labTests: labTests,
             advice,
             followUpDate,
             dateIssued: new Date()
         });
 
-        // Save the prescription to the database
         await newPrescription.save();
 
-        res.status(201).json({ message: "Prescription saved successfully!", prescription: newPrescription });
+        // Create insurance claim
+        const doctor = await Doctor.findOne({ email: doctorEmail });
+
+        if (!doctor || !patient) {
+            return res.status(404).json({ message: "Doctor or Patient not found" });
+        }
+
+        const newClaim = new Claim({
+            prescriptionId: newPrescription._id,
+            doctorEmail: doctor.email,
+            doctorName: doctor.name,
+            doctorFee: doctor.consultationFee,
+            doctorSpecialization: doctor.specialization,
+            patientEmail: patient.email,
+            patientName: patient.name,
+            patientAge: patient.age,
+            patientGender: patient.gender,
+            patientBloodGroup: patient.bloodGroup,
+            patientContactNumber: patient.contactNumber,
+            totalAmount: doctor.consultationFee,
+            claimStatus: 'Pending',
+            consultancyDate: new Date(),
+            insuranceCompanyName: patient.insuranceProvider,
+            insuranceCardFront: patient.insuranceCardFront,
+            insuranceCardBack: patient.insuranceCardBack,
+            medicines: [],
+            labTests: []
+        });
+
+        await newClaim.save();
+
+        res.status(201).json({
+            message: "Prescription saved successfully!",
+            prescription: newPrescription,
+            claim: newClaim
+        });
 
     } catch (error) {
         console.error("Error saving prescription:", error);
         res.status(500).json({ message: "Failed to save prescription." });
     }
+
 };
 
 const checkPrescription_before = async (req, res) => {
@@ -1074,6 +1110,27 @@ const getPatientName = async (req, res) => {
 };
 
 
+
+/////////  claim
+
+const getClaimByPrescriptionId = async (req, res) => {
+    try {
+        const { prescriptionId } = req.params;
+        const claim = await Claim.findOne({ prescriptionId })
+            .populate('prescriptionId')
+            .exec();
+
+        if (!claim) {
+            return res.status(404).json({ message: "Claim not found" });
+        }
+
+        res.status(200).json(claim);
+    } catch (error) {
+        console.error("Error fetching claim:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
 module.exports = {
     addPatient,
     getPatientDetails,
@@ -1109,5 +1166,6 @@ module.exports = {
     getLabAttendeeTests,
     updateLabTestStatus,
     getLabTestsByPrescriptionId,
-    getPatientName
+    getPatientName,
+    getClaimByPrescriptionId
 };

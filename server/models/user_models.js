@@ -60,39 +60,58 @@ const adminSchema = new mongoose.Schema({
 });
 
 const claimSchema = new mongoose.Schema({
+    prescriptionId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Prescription',
+        required: true
+    },
     doctorEmail: { type: String, required: true },
     doctorName: { type: String, required: true },
     doctorFee: { type: Number, required: true },
+    doctorSpecialization: { type: String, required: true },
     patientEmail: { type: String, required: true },
     patientName: { type: String, required: true },
-
-    // Consultancy details
+    patientAge: { type: Number, required: true },
+    patientGender: {
+        type: String,
+        enum: ["Male", "Female", "Other"],
+        required: true
+    },
+    patientBloodGroup: {
+        type: String,
+        enum: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'N/A'],
+        required: true
+    },
+    patientContactNumber: { type: String, required: true },
+    totalAmount: { type: Number, required: true },
+    claimStatus: {
+        type: String,
+        enum: ['Pending', 'Sent', 'Approved'],
+        default: 'Pending'
+    },
     consultancyDate: { type: Date, required: true },
-    consultancyStartTime: { type: String, required: true },
-    consultancyEndTime: { type: String, required: true },
-
-    // Insurance details
-    insuranceCompanyEmail: { type: String, required: true }, // NEW FIELD
+    insuranceCompanyName: { type: String, required: true },
     insuranceCardFront: { type: String, required: true },
     insuranceCardBack: { type: String, required: true },
-
-    // Medicines
     medicines: [{
         name: { type: String },
-        fee: { type: Number }
+        fee: { type: Number },
+        status: {
+            type: String,
+            enum: ['Pending', 'Approved'],
+            default: 'Pending'
+        }
     }],
-
-    // Lab Tests
     labTests: [{
         testName: { type: String },
         testFee: { type: Number },
-        labAttendeeEmail: { type: String, default: null },
-        testDate: { type: Date, default: null },
-        time: { type: String, default: null },
-    }],
-
-    pharmacistEmail: { type: String, default: null }
-});
+        status: {
+            type: String,
+            enum: ['Pending', 'Approved'],
+            default: 'Pending'
+        }
+    }]
+}, { timestamps: true });
 
 const prescriptionSchema = new mongoose.Schema({
     patientEmail: { type: String, required: true },
