@@ -112,11 +112,25 @@ const DoctorPrescription = ({ isSidebarVisible, toggleSidebar }) => {
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
+
+        // Validation for Follow-up Date
+        if (name === "followUpDate") {
+            const selectedDate = new Date(value);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Remove time for accurate comparison
+
+            if (selectedDate <= today) {
+                alert("Follow-up date must be a future date.");
+                return; // Stop updating state if invalid
+            }
+        }
+
         setPrescriptionData({
             ...prescriptionData,
             [name]: value,
         });
     };
+
 
     const handleSymptomChange = (index, value) => {
         const newSymptoms = [...prescriptionData.symptoms];
@@ -307,32 +321,13 @@ const DoctorPrescription = ({ isSidebarVisible, toggleSidebar }) => {
             alert("Please enter the diagnosis.");
             return;
         }
-
-        // Validate email format using regex
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(prescriptionData.patientEmail)) {
-            alert("Please enter a valid email address.");
-            return;
-        }
-
-        // Validate lab tests
         if (prescriptionData.labTests.length === 0) {
             alert("Please add at least one lab test before sending to Lab Attendant.");
             return;
         }
 
         try {
-            // Check if patient exists in the database
-            const patientResponse = await axios.get(`http://localhost:5000/api/auth/patient-details?email=${prescriptionData.patientEmail}`);
-            const patientData = patientResponse.data;
-
-            // Validate age and gender match with patient data
-            if (patientData.age !== parseInt(prescriptionData.patientAge) || patientData.gender !== prescriptionData.patientGender) {
-                alert("Patient details do not match with our records. Please check the email, age, and gender.");
-                return;
-            }
-
-            // Check if the prescription is already saved
+            // 1️⃣ **Check if the prescription exists in the database**
             const prescriptionResponse = await axios.get("http://localhost:5000/api/auth/prescriptions/check", {
                 params: {
                     doctorEmail: email,
@@ -346,11 +341,11 @@ const DoctorPrescription = ({ isSidebarVisible, toggleSidebar }) => {
                 return;
             }
 
-            // Check if lab tests already exist for this prescription
+            const prescriptionId = prescriptionResponse.data.prescriptionId; // Get the prescription ID
+
+            // 2️⃣ **Check if lab tests already exist for this prescription**
             const labTestsResponse = await axios.get("http://localhost:5000/api/auth/lab-tests/check", {
-                params: {
-                    prescriptionId: prescriptionResponse.data.prescriptionId
-                }
+                params: { prescriptionId }
             });
 
             if (labTestsResponse.data.exists) {
@@ -358,21 +353,16 @@ const DoctorPrescription = ({ isSidebarVisible, toggleSidebar }) => {
                 return;
             }
 
-            // Save lab tests with status "Pending"
-            const labTestPayload = {
-                prescriptionId: prescriptionResponse.data.prescriptionId, // Prescription ID from the saved prescription
-                labTests: prescriptionData.labTests.map(test => ({
-                    testName: test,
-                    status: "Pending"
-                }))
-            };
+            // 3️⃣ **Send lab tests & update claim with test fees**
+            await axios.post("http://localhost:5000/api/auth/lab-tests/create-and-update-claim", {
+                prescriptionId,
+                labTests: prescriptionData.labTests
+            });
 
-            await axios.post("http://localhost:5000/api/auth/lab-tests/create", labTestPayload);
-
-            alert("Lab request sent successfully!");
+            alert("Lab request sent successfully and claim updated!");
         } catch (error) {
             console.error("Error sending lab request:", error);
-            alert("Please save the Prescription first.");
+            alert("Failed to send lab request. Please try again.");
         }
     };
 
@@ -409,17 +399,7 @@ const DoctorPrescription = ({ isSidebarVisible, toggleSidebar }) => {
         }
 
         try {
-            // Check if patient exists in the database
-            const patientResponse = await axios.get(`http://localhost:5000/api/auth/patient-details?email=${prescriptionData.patientEmail}`);
-            const patientData = patientResponse.data;
-
-            // Validate age and gender match with patient data
-            if (patientData.age !== parseInt(prescriptionData.patientAge) || patientData.gender !== prescriptionData.patientGender) {
-                alert("Patient details do not match with our records. Please check the email, age, and gender.");
-                return;
-            }
-
-            // Check if the prescription is already saved
+            // Step 1️⃣: Check if the prescription exists
             const prescriptionResponse = await axios.get("http://localhost:5000/api/auth/prescriptions/check", {
                 params: {
                     doctorEmail: email,
@@ -433,39 +413,32 @@ const DoctorPrescription = ({ isSidebarVisible, toggleSidebar }) => {
                 return;
             }
 
-            // Check if medications already exist for this prescription
-            const medicationsResponse = await axios.get("http://localhost:5000/api/auth/medicines/check", {
-                params: {
-                    prescriptionId: prescriptionResponse.data.prescriptionId
-                }
+            const prescriptionId = prescriptionResponse.data.prescriptionId; // Get the prescription ID
+
+            // Step 2️⃣: Check if medicines already exist for this prescription in the claim
+            const medicinesResponse = await axios.get("http://localhost:5000/api/auth/medicines/check", {
+                params: { prescriptionId }
             });
 
-            if (medicationsResponse.data.exists) {
-                alert("Medications already exist for this prescription. No need to send again.");
+            if (medicinesResponse.data.exists) {
+                alert("Medicines already exist for this prescription. No need to send again.");
                 return;
             }
 
-            // Prepare the payload for the pharmacy request
-            const pharmacyRequestPayload = {
-                prescriptionId: prescriptionResponse.data.prescriptionId,
-                doctorEmail: email,
-                doctorName: doctorInfo.name,
-                patientEmail: prescriptionData.patientEmail,
-                patientAge: prescriptionData.patientAge,
-                patientGender: prescriptionData.patientGender,
-                diagnosis: prescriptionData.diagnosis,
-                medications: prescriptionData.medications,
-                advice: prescriptionData.advice,
-                date: new Date().toISOString()
-            };
+            // Step 3️⃣: Send medicines & update claim with fees
+            const response = await axios.post("http://localhost:5000/api/auth/pharmacy-requests/create-and-update-claim", {
+                prescriptionId,
+                medicines: prescriptionData.medications
+            });
 
-            // Send the pharmacy request to the backend
-            await axios.post("http://localhost:5000/api/auth/pharmacy-requests/create", pharmacyRequestPayload);
-
-            alert("Prescription sent to pharmacist successfully!");
+            if (response.status === 200) {
+                alert("Prescription sent to pharmacist successfully and claim updated!");
+            } else {
+                alert("Failed to send prescription. Please try again.");
+            }
         } catch (error) {
             console.error("Error sending prescription to pharmacist:", error);
-            alert("Please save the Prescription first.");
+            alert("Failed to send prescription. Please try again.");
         }
     };
 

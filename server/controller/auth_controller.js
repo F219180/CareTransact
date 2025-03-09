@@ -1,7 +1,8 @@
 const { Doctor, Patient, Appointment, Admin, Claim, Prescription, LabAttendee, Pharmacist, LabTest, Medicine, InsuranceCompany } = require('../models/user_models');
 const mongoose = require('mongoose');
-
-
+const XLSX = require("xlsx");
+const fs = require("fs");
+const path = require("path");
 // Patient Controllers
 const addPatient = async (req, res) => {
     try {
@@ -1131,6 +1132,219 @@ const getClaimByPrescriptionId = async (req, res) => {
     }
 };
 
+
+const createLabTestsAndUpdateClaim = async (req, res) => {
+    try {
+        const { prescriptionId, labTests } = req.body;
+
+        if (!prescriptionId || !labTests || labTests.length === 0) {
+            return res.status(400).json({ error: "PrescriptionId and labTests are required." });
+        }
+
+        // Step 1: Save the lab tests in LabTest schema
+        const savedLabTests = await LabTest.create({
+            prescriptionId,
+            labTests: labTests.map(test => ({
+                testName: test,
+                status: "Pending"
+            }))
+        });
+
+        console.log("✅ Lab tests saved successfully.");
+
+        // Step 2: Check if a claim exists for the prescription
+        const existingClaim = await Claim.findOne({ prescriptionId });
+
+        if (!existingClaim) {
+            console.log("⚠️ No existing claim found for this prescription.");
+            return res.status(200).json({
+                message: "Lab tests saved, but no claim exists for this prescription."
+            });
+        }
+
+        // Step 3: Ensure claim exists before processing lab test fees
+        if (existingClaim.labTests.length === 0) {
+            console.log("✅ Claim found but no lab tests exist. Updating claim...");
+
+            // **🔹 File Path for Lab Test Fees**
+            const filePath = path.join(__dirname, '../data/lab_tests.xlsx');
+
+            // **🔹 Check if the file exists**
+            if (!fs.existsSync(filePath)) {
+                console.error("❌ Lab test fee file not found:", filePath);
+                return res.status(500).json({ error: "Lab test fee file not found." });
+            }
+
+            try {
+                const workbook = XLSX.readFile(filePath);
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                // **🔹 Convert Excel Data into an Object { testName: fee }**
+                const testFees = {};
+                jsonData.slice(1).forEach(row => {
+                    if (row.length >= 2) {
+                        const testName = row[0].trim();
+                        const testFee = parseFloat(row[1]);
+                        if (!isNaN(testFee)) {
+                            testFees[testName] = testFee;
+                        }
+                    }
+                });
+
+                console.log("📄 Lab test fees loaded:", testFees);
+
+                // Step 4: Calculate Total Lab Test Fee
+                let totalLabTestFee = 0;
+
+                existingClaim.labTests = labTests.map(test => {
+                    const testFee = testFees[test] || 0; // Default fee 0 if not found
+                    totalLabTestFee += testFee;
+                    return {
+                        testName: test,
+                        testFee: testFee,
+                        status: "Pending"
+                    };
+                });
+
+                // **🔹 Add Lab Test Fees to Total Amount**
+                existingClaim.totalAmount += totalLabTestFee;
+
+                await existingClaim.save();
+                console.log("✅ Claim updated with lab tests, fees, and total amount updated.");
+
+                return res.status(200).json({
+                    message: "Lab tests saved and claim updated with fees and total amount.",
+                    savedLabTests,
+                    updatedClaim: existingClaim
+                });
+            } catch (error) {
+                console.error("❌ Error reading lab_tests.xlsx file:", error);
+                return res.status(500).json({ error: "Error reading lab test price file." });
+            }
+        }
+
+        return res.status(200).json({
+            message: "Lab tests saved, but claim already had lab tests.",
+            savedLabTests
+        });
+
+    } catch (error) {
+        console.error("❌ Error in createLabTestsAndUpdateClaim:", error);
+        res.status(500).json({ error: "Internal server error." });
+    }
+};
+
+
+
+const createPharmacyRequestAndUpdateClaim = async (req, res) => {
+    try {
+        const { prescriptionId, medicines } = req.body;
+
+        if (!prescriptionId || !medicines || medicines.length === 0) {
+            return res.status(400).json({ error: "PrescriptionId and medicines are required." });
+        }
+
+        // Step 1: Save the medicines in the Medicine schema
+        const savedMedicines = await Medicine.create({
+            prescriptionId,
+            medicines: medicines.map(med => ({
+                medicineName: med.name,
+                dosage: med.dosage,
+                duration: med.duration,
+                status: "Pending"
+            }))
+        });
+
+        console.log("✅ Medicines saved successfully.");
+
+        // Step 2: Check if a claim exists for the prescription
+        const existingClaim = await Claim.findOne({ prescriptionId });
+
+        if (!existingClaim) {
+            console.log("⚠️ No existing claim found for this prescription.");
+            return res.status(200).json({
+                message: "Medicines saved, but no claim exists for this prescription."
+            });
+        }
+
+        // Step 3: Ensure the claim exists before processing medicine fees
+        if (existingClaim.medicines.length === 0) {
+            console.log("✅ Claim found but no medicines exist. Updating claim...");
+
+            // **🔹 File Path for Medicine Fees**
+            const filePath = path.join(__dirname, '../data/medicines.xlsx');
+
+            // **🔹 Check if the file exists**
+            if (!fs.existsSync(filePath)) {
+                console.error("❌ Medicine fee file not found:", filePath);
+                return res.status(500).json({ error: "Medicine fee file not found." });
+            }
+
+            try {
+                const workbook = XLSX.readFile(filePath);
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                // **🔹 Convert Excel Data into an Object { medicineName: fee }**
+                const medicineFees = {};
+                jsonData.slice(1).forEach(row => {
+                    if (row.length >= 2) {
+                        const medicineName = row[0].trim();
+                        const medicineFee = parseFloat(row[1]);
+                        if (!isNaN(medicineFee)) {
+                            medicineFees[medicineName] = medicineFee;
+                        }
+                    }
+                });
+
+                console.log("📄 Medicine fees loaded:", medicineFees);
+
+                // Step 4: Calculate Total Medicine Fee
+                let totalMedicineFee = 0;
+
+                existingClaim.medicines = medicines.map(med => {
+                    const medicineFee = medicineFees[med.name] || 0; // Default fee 0 if not found
+                    totalMedicineFee += medicineFee;
+                    return {
+                        name: med.name,
+                        fee: medicineFee,
+                        status: "Pending"
+                    };
+                });
+
+                // **🔹 Add Medicine Fees to Total Amount**
+                existingClaim.totalAmount += totalMedicineFee;
+
+                await existingClaim.save();
+                console.log("✅ Claim updated with medicines, fees, and total amount updated.");
+
+                return res.status(200).json({
+                    message: "Medicines saved and claim updated with fees and total amount.",
+                    savedMedicines,
+                    updatedClaim: existingClaim
+                });
+            } catch (error) {
+                console.error("❌ Error reading medicines.xlsx file:", error);
+                return res.status(500).json({ error: "Error reading medicine price file." });
+            }
+        }
+
+        return res.status(200).json({
+            message: "Medicines saved, but claim already had medicines.",
+            savedMedicines
+        });
+
+    } catch (error) {
+        console.error("❌ Error in createPharmacyRequestAndUpdateClaim:", error);
+        res.status(500).json({ error: "Internal server error." });
+    }
+};
+
+
+
 module.exports = {
     addPatient,
     getPatientDetails,
@@ -1167,5 +1381,7 @@ module.exports = {
     updateLabTestStatus,
     getLabTestsByPrescriptionId,
     getPatientName,
-    getClaimByPrescriptionId
+    getClaimByPrescriptionId,
+    createLabTestsAndUpdateClaim,
+    createPharmacyRequestAndUpdateClaim
 };

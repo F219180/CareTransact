@@ -78,6 +78,10 @@ router.get('/lab-tests-by-prescription', controllers.getLabTestsByPrescriptionId
 
 // Add these endpoints to your backend
 router.get('/claims/:prescriptionId', controllers.getClaimByPrescriptionId);
+router.post('/lab-tests/create-and-update-claim', controllers.createLabTestsAndUpdateClaim);
+router.post('/pharmacy-requests/create-and-update-claim', controllers.createPharmacyRequestAndUpdateClaim);
+
+
 
 
 router.use((err, req, res, next) => {
