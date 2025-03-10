@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './admin.css';
-import { FaUserMd, FaUser, FaPrescriptionBottleAlt, FaFlask, FaBell, FaFileInvoiceDollar, FaTrash, FaEdit, FaPlus, FaSearch, FaCheckCircle, FaTimes } from 'react-icons/fa';
+import { FaUserMd, FaUser, FaPrescriptionBottleAlt, FaFlask, FaBell, FaFileInvoiceDollar, FaTrash, FaEdit, FaPlus, FaSearch, FaCheckCircle, FaTimes, FaEyeSlash, FaEye } from 'react-icons/fa';
 import axios from 'axios';
 
 const AdminDashboard = () => {
@@ -30,11 +30,100 @@ const AdminDashboard = () => {
     const [enteredPassword, setEnteredPassword] = useState("");
     const [passwordError, setPasswordError] = useState("");
     const [selectedEntity, setSelectedEntity] = useState(null); // Stores the clicked entity type
+    const [adminPassword, setAdminPassword] = useState('');
+    const [userData, setUserData] = useState([]);
+    const [email, setEmail] = useState("");
+    const [name, setName] = useState("");
+    const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
+    const [showAddUserPopup, setShowAddUserPopup] = useState(false);
+    const [selectedUserDetails, setSelectedUserDetails] = useState(null); // Stores user details
+    const [showUserInfoPopup, setShowUserInfoPopup] = useState(false); // Controls user details popup
 
 
 
+    const handleRowClick = async (id) => {
+        if (!selectedEntity) {
+            console.error("No entity selected.");
+            return;
+        }
 
-    // New user form state
+        try {
+            // Simulating API call to fetch user details (Replace with actual API)
+            const response = await axios.get(`http://localhost:5000/api/auth/user-details/${selectedEntity}/${id}`);
+
+            setSelectedUserDetails(response.data); // Store user details
+            setShowUserInfoPopup(true); // Show the user details popup
+        } catch (error) {
+            console.error("Error fetching user details:", error);
+        }
+    };
+
+
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(pk|com|org|edu|gov|mil)$/;
+    const handleAddUserClick = () => {
+        setShowAddUserPopup(true);
+    };
+
+    const handleAddUser = async () => {
+        // ✅ Email validation
+        if (!emailRegex.test(email)) {
+            alert("Invalid email format. Please enter a valid email.");
+            return;
+        }
+
+        // ✅ Password validation
+        if (password.length < 6) {
+            alert("Password must be at least 6 characters long.");
+            return;
+        }
+
+        if (!/\d/.test(password)) {
+            alert("Password must contain at least one number.");
+            return;
+        }
+
+        if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+            alert("Password must contain at least one special character.");
+            return;
+        }
+
+        console.log("Adding user:", { email, password, entity: selectedEntity, name });
+
+        try {
+            // ✅ Send request to backend API
+            const response = await fetch("http://localhost:5000/api/auth/add-user", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    email,
+                    password,
+                    entity: selectedEntity,
+                    name,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert("User added successfully!");
+                window.location.reload();
+            } else {
+                alert(`Failed to add user: ${data.error}`);
+            }
+        } catch (error) {
+            console.error("Error adding user:", error);
+            alert("An error occurred while adding the user.");
+        }
+
+        // ✅ Reset fields
+        setShowAddUserPopup(false);
+        setEmail("");
+        setPassword("");
+    };
+
     const [newUser, setNewUser] = useState({
         name: '',
         email: '',
@@ -47,47 +136,44 @@ const AdminDashboard = () => {
     const [patientCount, setPatientCount] = useState(0);
     const [labAttendeeCount, setLabAttendeeCount] = useState(0);
     const [pharmacistCount, setPharmacistCount] = useState(0);
-    // Mock data for demonstration
-    useEffect(() => {
-        // Simulate API call
-        const fetchData = () => {
-            // Mock users data
-            const mockUsers = [
-                { id: 1, name: 'Dr. John Smith', email: 'john@example.com', phone: '123-456-7890', type: 'doctor', specialization: 'Cardiology', address: '123 Medical Dr', appointmentsCount: 45, pendingAppointments: 7 },
-                { id: 2, name: 'Dr. Emily Johnson', email: 'emily@example.com', phone: '234-567-8901', type: 'doctor', specialization: 'Pediatrics', address: '456 Health Ave', appointmentsCount: 38, pendingAppointments: 4 },
-                { id: 3, name: 'Sarah Williams', email: 'sarah@example.com', phone: '345-678-9012', type: 'patient', address: '789 Patient St', appointmentsCount: 12, pendingAppointments: 1 },
-                { id: 4, name: 'Michael Brown', email: 'michael@example.com', phone: '456-789-0123', type: 'patient', address: '101 Recovery Ln', appointmentsCount: 8, pendingAppointments: 2 },
-                { id: 5, name: 'Lisa Chen', email: 'lisa@example.com', phone: '567-890-1234', type: 'pharmacist', address: '234 Remedy Rd', appointmentsCount: 0, pendingAppointments: 0 },
-                { id: 6, name: 'Robert Taylor', email: 'robert@example.com', phone: '678-901-2345', type: 'labAttendee', address: '567 Analysis Ave', appointmentsCount: 0, pendingAppointments: 0 },
-            ];
-            setUsers(mockUsers);
-            setDoctors(mockUsers.filter(user => user.type === 'doctor'));
-            setPatients(mockUsers.filter(user => user.type === 'patient'));
-            setPharmacists(mockUsers.filter(user => user.type === 'pharmacist'));
-            setLabAttendees(mockUsers.filter(user => user.type === 'labAttendee'));
-            // Mock dashboard data
-            setTotalAppointments(103);
-            setPendingAppointments(14);
-            setTotalClaims(78);
-            setPendingClaims(23);
-        };
-        fetchData();
-    }, []);
-    // useEffect(() => {
-    //     const fetchCounts = async () => {
-    //         try {
-    //             const response = await axios.get('/api/auth/user-counts');
-    //             setDoctorCount(response.data.doctorCount);
-    //             setPatientCount(response.data.patientCount);
-    //             setLabAttendeeCount(response.data.labAttendeeCount);
-    //             setPharmacistCount(response.data.pharmacistCount);
-    //         } catch (err) {
-    //             console.error(err);
-    //         }
-    //     };
 
-    //     fetchCounts();
-    // }, []);
+    const [appointmentCount, setAppointmentCount] = useState(0);
+    const [availableCount, setAvailableCount] = useState(0);
+    const [pendingCount, setPendingCount] = useState(0);
+    const [confirmedCount, setConfirmedCount] = useState(0);
+
+    //fetching users count
+    useEffect(() => {
+        const fetchCounts = async () => {
+            try {
+                const response = await axios.get('http://localhost:5000/api/auth/user-counts');
+                setDoctorCount(response.data.doctorCount);
+                setPatientCount(response.data.patientCount);
+                setLabAttendeeCount(response.data.labAttendeeCount);
+                setPharmacistCount(response.data.pharmacistCount);
+            } catch (err) {
+                console.error(err);
+            }
+        };
+
+        fetchCounts();
+    }, []);
+    //fetching appointment count
+    useEffect(() => {
+        const fetchCounts = async () => {
+            try {
+                const response = await axios.get('http://localhost:5000/api/auth//getAppointmentCount');
+                setAppointmentCount(response.data.appointmentCount);
+                setAvailableCount(response.data.availableCount);
+                setPendingCount(response.data.pendingCount);
+                setConfirmedCount(response.data.confirmedCount);
+            } catch (err) {
+                console.error('Error fetching appointment counts:', err);
+            }
+        };
+
+        fetchCounts();
+    }, []);
     // Mock appointments data
     const appointments = [
         { id: 1, patientName: 'Sarah Williams', doctorName: 'Dr. John Smith', date: '2025-03-02', time: '10:00 AM' },
@@ -175,32 +261,6 @@ const AdminDashboard = () => {
         }
         return true;
     });
-    // Handle adding new user
-    const handleAddUser = () => {
-        const userId = users.length + 1;
-        const updatedUsers = [...users, { ...newUser, id: userId, appointmentsCount: 0, pendingAppointments: 0 }];
-        setUsers(updatedUsers);
-        // Update appropriate user type list
-        if (newUser.type === 'doctor') {
-            setDoctors([...doctors, { ...newUser, id: userId, appointmentsCount: 0, pendingAppointments: 0 }]);
-        } else if (newUser.type === 'patient') {
-            setPatients([...patients, { ...newUser, id: userId, appointmentsCount: 0, pendingAppointments: 0 }]);
-        } else if (newUser.type === 'pharmacist') {
-            setPharmacists([...pharmacists, { ...newUser, id: userId, appointmentsCount: 0, pendingAppointments: 0 }]);
-        } else if (newUser.type === 'labAttendee') {
-            setLabAttendees([...labAttendees, { ...newUser, id: userId, appointmentsCount: 0, pendingAppointments: 0 }]);
-        }
-        // Reset form
-        setNewUser({
-            name: '',
-            email: '',
-            phone: '',
-            type: 'patient',
-            specialization: '',
-            address: ''
-        });
-        setShowUserModal(false);
-    };
     // Handle removing user
     const handleRemoveUser = (userId) => {
         const updatedUsers = users.filter(user => user.id !== userId);
@@ -264,21 +324,83 @@ const AdminDashboard = () => {
             default: return <FaUser />;
         }
     };
-    const handleDeleteUser = (userId) => {
-        //  Remove the user from the dummy data (For now, we filter it out)
-        const updatedUsers = getDummyUserData(selectedUserType).filter(user => user.id !== userId);
+    const handleDeleteUser = async (id, role) => {
+        try {
+            // Convert frontend entity name to backend role
+            const roleMapping = {
+                doctors: "doctor",
+                patients: "patient",
+                labAttendees: "lab_attendee",
+                pharmacists: "pharmacist"
+            };
 
-        //  Update the state (This will be replaced with a backend call later)
-        console.log(`Deleting user with ID: ${userId}`); // Temporary log for debugging
+            const mappedRole = roleMapping[role]; // Get correct role for API
+            if (!mappedRole) {
+                console.error("Invalid role:", role);
+                alert("Invalid user type");
+                return;
+            }
 
-        // Here, you can later replace this with an API call to delete from the database
+            const response = await axios.delete(`http://localhost:5000/api/auth/remove-user/${id}/${mappedRole}`);
+            console.log(response.data);
+            alert(`${mappedRole} deleted successfully`);
+
+            // Update UI: Remove the deleted user from the table
+            setUserData(prevData => prevData.filter(user => user.id !== id));
+            window.location.reload();
+
+        } catch (error) {
+            console.error("Error deleting user:", error.response?.data || error.message);
+            alert("Failed to delete user");
+        }
     };
+
+
+
+
+
     const openPasswordPopup = (entityType) => {
         setSelectedEntity(entityType); // ✅ Store the selected entity
         setEnteredPassword(""); // ✅ Clear the input field when opening
         setPasswordError(""); // ✅ Reset any error message
         setShowPasswordPopup(true); // ✅ Show the password popup
     };
+    useEffect(() => {
+        if (!selectedEntity) return;
+
+        const fetchUsers = async () => {
+            try {
+                let response = await axios.get(`http://localhost:5000/api/auth/get-users?type=${selectedEntity}`);
+                setUserData(response.data); // Update state with fetched data
+            } catch (error) {
+                console.error("Error fetching users:", error);
+            }
+        };
+
+        fetchUsers();
+    }, [selectedEntity]); // Runs when selectedEntity changes
+
+    useEffect(() => {
+        const fetchAdminPassword = async () => {
+            try {
+                const response = await axios.get('http://localhost:5000/api/auth/admin-password');
+                setAdminPassword(response.data.password); // Store password in state
+            } catch (err) {
+                console.error("Error fetching admin password:", err);
+            }
+        };
+
+        fetchAdminPassword();
+    }, []);
+
+    const handleLogin = (enteredPassword) => {
+        if (enteredPassword === adminPassword) {
+            console.log("Admin login successful");
+        } else {
+            console.log("Incorrect password");
+        }
+    };
+
     const verifyPassword = () => {
         const correctPassword = "admin123"; // ✅ Fixed password for now
 
@@ -311,10 +433,11 @@ const AdminDashboard = () => {
 
                 <div className="metric-card">
                     <h3>Appointments</h3>
-                    <div className="metric-value">{totalAppointments}</div>
+                    <div className="metric-value">{appointmentCount}</div>
                     <div className="metric-breakdown">
-                        <span><FaBell /> Pending: {pendingAppointments}</span>
-                        <span>Confirmed: {totalAppointments - pendingAppointments}</span>
+                        <span><FaBell /> Pending: {pendingCount}</span>
+                        <span>Confirmed: {confirmedCount}</span>
+                        <span>Availbale: {availableCount}</span>
                     </div>
                 </div>
                 <div className="metric-card">
@@ -394,25 +517,26 @@ const AdminDashboard = () => {
                                     <tbody>
                                         <tr onClick={() => openPasswordPopup("doctors")} style={{ cursor: "pointer" }}>
                                             <td>Doctors</td>
-                                            <td>{doctors.length}</td>
+                                            <td>{doctorCount}</td>
                                         </tr>
                                         <tr onClick={() => openPasswordPopup("patients")} style={{ cursor: "pointer" }}>
                                             <td>Patients</td>
-                                            <td>{patients.length}</td>
+                                            <td>{patientCount}</td>
                                         </tr>
                                         <tr onClick={() => openPasswordPopup("labAttendees")} style={{ cursor: "pointer" }}>
                                             <td>Lab Attendees</td>
-                                            <td>{labAttendees.length}</td>
+                                            <td>{labAttendeeCount}</td>
                                         </tr>
                                         <tr onClick={() => openPasswordPopup("pharmacists")} style={{ cursor: "pointer" }}>
                                             <td>Pharmacists</td>
-                                            <td>{pharmacists.length}</td>
+                                            <td>{pharmacistCount}</td>
                                         </tr>
                                     </tbody>
                                 </table>
                             </div>
                         </div>
                     )}
+
 
                     {showUserDetailsPopup && (
                         <div className="popup-overlay">
@@ -430,32 +554,146 @@ const AdminDashboard = () => {
                                         <tr>
                                             <th>ID</th>
                                             <th>Name</th>
-                                            {selectedEntity === "doctors" && <th>Qualification</th>}  {/* Qualification only for Doctors */}
                                             <th>Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {getDummyUserData(selectedEntity).map(user => (
-                                            <tr key={user.id}>
+                                        {userData.map(user => (
+                                            <tr key={user.id} onClick={() => handleRowClick(user.id)}>
                                                 <td>{user.id}</td>
                                                 <td>{user.name}</td>
-                                                {selectedEntity === "doctors" && <td>{user.qualification}</td>}
                                                 <td>
                                                     <FaTrash
                                                         className="delete-icon"
                                                         onClick={(e) => {
-                                                            e.stopPropagation(); //  Prevents row click event from triggering
-                                                            handleDeleteUser(user.id);
+                                                            e.stopPropagation();
+                                                            handleDeleteUser(user.id, selectedEntity); // Pass the entity type
                                                         }}
                                                     />
+
                                                 </td>
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
+                                {/* Add User Button */}
+                                {selectedEntity !== "patients" &&
+                                    ((selectedEntity !== "labAttendees" || labAttendeeCount === 0) &&
+                                        (selectedEntity !== "pharmacists" || pharmacistCount === 0)) && (
+                                        <button onClick={() => setShowAddUserPopup(true)} className="add-user-button">
+                                            Add {selectedEntity}
+                                        </button>
+                                    )}
                             </div>
                         </div>
                     )}
+
+                    {showUserInfoPopup && selectedUserDetails && (
+                        <div className="popup-overlay">
+                            <div className="popup-content">
+                                <FaTimes className="close-icon" onClick={() => setShowUserInfoPopup(false)} />
+                                <h2>User Details</h2>
+                                <table className="user-details-table">
+                                    <tbody>
+                                        <tr>
+                                            <td><strong>Name:</strong></td>
+                                            <td>{selectedUserDetails.name}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Email:</strong></td>
+                                            <td>{selectedUserDetails.email}</td>
+                                        </tr>
+                                        {selectedEntity === "doctors" && (
+                                            <>
+                                                <tr>
+                                                    <td><strong>Gender:</strong></td>
+                                                    <td>{selectedUserDetails.gender}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Specialization:</strong></td>
+                                                    <td>{selectedUserDetails.specialization}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Experience:</strong></td>
+                                                    <td>{selectedUserDetails.yearOfExperience} years</td>
+                                                </tr>
+                                            </>
+                                        )}
+                                        {selectedEntity === "patients" && (
+                                            <>
+                                                <tr>
+                                                    <td><strong>Gender:</strong></td>
+                                                    <td>{selectedUserDetails.gender}</td>
+                                                </tr>
+
+                                            </>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+
+                    {showAddUserPopup && (
+                        <div className="popup-overlay">
+                            <div className="popup-content">
+                                <FaTimes className="close-icon" onClick={() => setShowAddUserPopup(false)} />
+                                <h2>Add {selectedEntity}</h2>
+
+                                {/* Email Field */}
+                                <input
+                                    type="text"
+                                    placeholder="Enter Email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="input-field"
+                                />
+
+                                {/* Name Field (Only for labAttendees & pharmacists) */}
+                                {(selectedEntity === "labAttendees" || selectedEntity === "pharmacists") && (
+                                    <input
+                                        type="text"
+                                        placeholder="Enter Name"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        className="input-field"
+                                    />
+                                )}
+
+                                {/* Password Field */}
+                                <div className="password-container">
+                                    <input
+                                        type={showPassword ? "text" : "password"}
+                                        placeholder="Enter Password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        className="input-field"
+                                    />
+                                    <span className="toggle-password" onClick={() => setShowPassword(!showPassword)}>
+                                        {showPassword ? <FaEyeSlash /> : <FaEye />}
+                                    </span>
+                                </div>
+
+                                <button
+                                    onClick={handleAddUser}
+                                    className={`add-user-button ${(!email || !password ||
+                                        ((selectedEntity === "labAttendees" || selectedEntity === "pharmacists") && !name)) ? "disabled" : ""}`}
+                                    disabled={
+                                        !email || !password ||
+                                        ((selectedEntity === "labAttendees" || selectedEntity === "pharmacists") && !name)
+                                    }
+                                >
+                                    Add User
+                                </button>
+
+
+                            </div>
+                        </div>
+                    )}
+
+
+
 
                     {showPasswordPopup && (
                         <div className="popup-overlay">

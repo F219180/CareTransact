@@ -44,9 +44,10 @@ body {
 .admin-dashboard {
     display: flex;
     min-height: 100vh;
+    margin-left: -16%;
 }
 
-/* Sidebar
+/* Sidebar */
 .sidebar {
     width: var(--sidebar-width);
     background-color: var(--dark-color);
@@ -95,7 +96,7 @@ body {
     background-color: var(--primary-color);
     color: white;
     font-weight: 500;
-} */
+}
 
 /* Main Content */
 .main-content {
@@ -873,12 +874,14 @@ body {
     background: white;
     padding: 20px;
     border-radius: 8px;
-    width: 500px;
+    width: 50%;
     /* Increase this value (default is 350px) */
-    max-width: 90%;
+    max-width: 600px;
     /* Prevents it from getting too wide on large screens */
     text-align: center;
     position: relative;
+    align-items: center;
+    /* Centers horizontally */
 }
 
 
@@ -900,26 +903,54 @@ body {
     cursor: pointer;
 }
 
+.users-table tbody tr:hover {
+    background-color: #fff4f4;
+    /* Light pink */
+    cursor: pointer;
+}
+
 .users-table thead tr {
-    background-color: #4547d4;
+    background-color: #007bff;
     /* Change this color */
     color: white;
     /* Text color for better contrast */
 }
 
+.add-user-button {
+    display: block;
+    /* Ensures it behaves like a block element */
+    margin: 20px auto;
+    /* Centers horizontally */
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    text-align: center;
+}
+
+.add-user-button:disabled {
+    background-color: #ccc;
+    /* Light gray */
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
 .delete-icon {
     color: black;
-    /* 🔴 Make the trash icon red */
+    /* ðŸ”´ Make the trash icon red */
     cursor: pointer;
-    /* 👆 Show pointer on hover */
+    /* ðŸ‘† Show pointer on hover */
     font-size: 18px;
-    /* 🔍 Adjust size */
+    /* ðŸ” Adjust size */
     transition: color 0.3s ease-in-out;
 }
 
 .delete-icon:hover {
     color: darkred;
-    /* 🛑 Darker red when hovered */
+    /* ðŸ›‘ Darker red when hovered */
 }
 
 .password-input {
@@ -949,4 +980,40 @@ body {
     color: red;
     font-size: 14px;
     margin-top: 5px;
+}
+
+/* Input fields */
+.input-field {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+/* Password container (for aligning the toggle button) */
+.password-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+}
+
+/* Password input field */
+.password-container .input-field {
+    flex: 1;
+}
+
+/* Toggle password button (eye icon) */
+.toggle-password {
+    cursor: pointer;
+    font-size: 20px;
+    color: #007bff;
+    position: absolute;
+    right: 10px;
+}
+
+.toggle-password:hover {
+    color: #0056b3;
 }
