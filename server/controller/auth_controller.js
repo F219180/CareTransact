@@ -968,6 +968,59 @@ const getPharmacistMedicines = async (req, res) => {
     }
 };
 
+const updateMedicineStatus = async (req, res) => {
+    try {
+        const { medicineId } = req.body;
+
+        if (!medicineId) {
+            return res.status(400).json({ error: "Medicine ID is required." });
+        }
+
+        // 1. Find the medicine entry in Medicine collection
+        const medicineEntry = await Medicine.findOne({ "medicines._id": medicineId });
+        if (!medicineEntry) {
+            return res.status(404).json({ error: "Medicine not found in medicines collection." });
+        }
+
+        // 2. Get prescriptionId and medicine name
+        const prescriptionId = medicineEntry.prescriptionId;
+        const targetMedicine = medicineEntry.medicines.find(med => med._id.toString() === medicineId);
+        const medicineName = targetMedicine?.medicineName;
+
+        // 3. Update status in Medicine collection
+        const updatedMedicine = await Medicine.findOneAndUpdate(
+            { "medicines._id": medicineId },
+            { $set: { "medicines.$.status": "Provided" } },
+            { new: true }
+        );
+
+        // 4. Update corresponding medicine in Claim collection using medicineName
+        const updatedClaim = await Claim.findOneAndUpdate(
+            { prescriptionId, "medicines.name": medicineName },
+            { $set: { "medicines.$.status": "Approved" } },
+            { new: true }
+        );
+
+        // 5. Check if all medicines are approved
+        if (updatedClaim) {
+            const allApproved = updatedClaim.medicines.every(med => med.status === "Approved");
+            if (allApproved) {
+                await Claim.findByIdAndUpdate(updatedClaim._id);
+            }
+        }
+
+        res.status(200).json({
+            message: "Status updated successfully",
+            medicine: updatedMedicine,
+            claim: updatedClaim
+        });
+
+    } catch (error) {
+        console.error("Error updating medicine status:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
 
 //////////////////////  lab attendant
 
@@ -1004,44 +1057,47 @@ const getLabAttendeeTests = async (req, res) => {
 };
 
 
+// In controller (auth_controller.js)
 const updateLabTestStatus = async (req, res) => {
     try {
         const { prescriptionId, testId, newStatus } = req.body;
 
-        if (!prescriptionId || !testId || !newStatus) {
-            return res.status(400).json({ error: "PrescriptionId, testId, and newStatus are required." });
+        // 1. Update LabTest status
+        const updatedLabTest = await LabTest.findOneAndUpdate(
+            { "labTests._id": testId },
+            { $set: { "labTests.$.status": newStatus } },
+            { new: true }
+        );
+
+        if (!updatedLabTest) {
+            return res.status(404).json({ error: "Lab test not found" });
         }
 
-        // Find the lab test entry for this prescription
-        const labTest = await LabTest.findOne({ prescriptionId });
-
-        if (!labTest) {
-            return res.status(404).json({ error: "Lab test not found." });
+        // 2. Get testName from updated lab test
+        const test = updatedLabTest.labTests.find(t => t._id.toString() === testId);
+        if (!test) {
+            return res.status(404).json({ error: "Test not found in lab tests" });
         }
 
-        // Find the specific test within the labTests array
-        const testIndex = labTest.labTests.findIndex(test => test._id.toString() === testId);
-
-        if (testIndex === -1) {
-            return res.status(404).json({ error: "Specific test not found." });
-        }
-
-        // Update the status of the specific test
-        labTest.labTests[testIndex].status = newStatus;
-        labTest.updatedAt = Date.now();
-
-        await labTest.save();
+        // 3. Update corresponding Claim's lab test status
+        const updatedClaim = await Claim.findOneAndUpdate(
+            { prescriptionId, "labTests.testName": test.testName },
+            { $set: { "labTests.$.status": "Approved" } },
+            { new: true }
+        );
 
         res.status(200).json({
-            message: "Lab test status updated successfully.",
-            labTest,
-            allProcessed: labTest.labTests.every(test => test.status === "Completed")
+            message: "Status updated successfully",
+            labTest: updatedLabTest,
+            claim: updatedClaim
         });
+
     } catch (error) {
-        console.error('Error updating lab test status:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        console.error("Error updating lab test status:", error);
+        res.status(500).json({ error: "Internal server error" });
     }
 };
+
 
 const getLabTestsByPrescriptionId = async (req, res) => {
     try {
@@ -1377,6 +1433,7 @@ module.exports = {
     createPharmacyRequest,
     checkMedicines,
     getPharmacistMedicines,
+    updateMedicineStatus,
     getLabAttendeeTests,
     updateLabTestStatus,
     getLabTestsByPrescriptionId,

@@ -113,55 +113,65 @@ const LabAttendentDashboard = () => {
     ];
 
     // Function to update individual lab test status
-    const handleUpdateStatus = async (prescriptionId, testId, newStatus) => {
+    // In lab.js frontend component
+    // In lab.js frontend component - Update the handleUpdateStatus function
+    // In lab.js - Updated handleUpdateStatus function
+    const handleUpdateStatus = async (prescriptionId, testId) => {
         try {
+            // 1. Get the test name before updating
+            const labTestData = prescriptions.find(p => p.id === prescriptionId);
+            const test = labTestData.labTests.find(t => t.id === testId);
+
+            // 2. Update LabTest status
             const response = await axios.put('http://localhost:5000/api/auth/update-lab-test-status', {
-                prescriptionId,
+                prescriptionId: labTestData.prescriptionId, // Actual prescription ID from prescription schema
                 testId,
-                newStatus
+                newStatus: 'Completed'
             });
 
             if (response.status === 200) {
-                toast.success(response.data.message);
+                toast.success("Lab test status updated successfully!");
 
-                // Update the local state
-                setPrescriptions(prevPrescriptions => {
-                    const updatedPrescriptions = prevPrescriptions.map(prescription => {
-                        if (prescription.id === prescriptionId) {
-                            const updatedLabTests = prescription.labTests.map(test =>
-                                test.id === testId ? { ...test, status: newStatus } : test
-                            );
+                // 3. Update local state
+                setPrescriptions(prev => prev.map(pres => {
+                    if (pres.id === prescriptionId) {
+                        const updatedTests = pres.labTests.map(t =>
+                            t.id === testId ? { ...t, status: 'Completed' } : t
+                        );
 
-                            const allProcessed = updatedLabTests.every(test => test.status === "Completed");
-
-                            return {
-                                ...prescription,
-                                labTests: updatedLabTests,
-                                status: allProcessed ? "Processed" : "Processing"
-                            };
-                        }
-                        return prescription;
-                    });
-
-                    // Update the selected prescription if it's the one being modified
-                    if (selectedPrescription && selectedPrescription.id === prescriptionId) {
-                        const updatedPrescription = updatedPrescriptions.find(p => p.id === prescriptionId);
-                        setSelectedPrescription(updatedPrescription);
+                        return {
+                            ...pres,
+                            labTests: updatedTests,
+                            status: updatedTests.every(t => t.status === 'Completed') ? 'Processed' : 'Processing'
+                        };
                     }
+                    return pres;
+                }));
 
-                    return updatedPrescriptions;
-                });
+                // 4. Update selected prescription if open
+                if (selectedPrescription?.id === prescriptionId) {
+                    setSelectedPrescription(prev => ({
+                        ...prev,
+                        labTests: prev.labTests.map(t =>
+                            t.id === testId ? { ...t, status: 'Completed' } : t
+                        ),
+                        status: prev.labTests.every(t =>
+                            t.id === testId ? true : t.status === 'Completed'
+                        ) ? 'Processed' : 'Processing'
+                    }));
+                }
             }
         } catch (error) {
-            console.error("Error updating lab test status:", error);
-            toast.error("Failed to update lab test status.");
+            console.error("Update error:", error);
+            toast.error("Failed to update lab test status");
         }
     };
 
-    // Modal component for prescription details
+
     const PrescriptionDetailModal = ({ prescription, onClose, updateLabTestStatus }) => (
         <div className="lab-test-modal">
-            <div className="lab-test-modal-content">
+            {/* ✅ Scrollable modal container */}
+            <div className="lab-test-modal-content scrollable-modal">
                 <h2>Lab Test Details</h2>
                 <div className="lab-test-details">
                     <div className="detail-section">
@@ -182,10 +192,7 @@ const LabAttendentDashboard = () => {
                             <h4>{test.testName} ({test.type || 'Lab Test'})</h4>
                             <p><strong>Status:</strong> {test.status}</p>
                             {test.status !== 'Completed' && (
-                                <button
-                                    className="process-btn"
-                                    onClick={() => updateLabTestStatus(prescription.id, test.id, 'Completed')}
-                                >
+                                <button className="process-btn" onClick={() => updateLabTestStatus(prescription.id, test.id)}>
                                     Mark as Completed
                                 </button>
                             )}
@@ -199,6 +206,7 @@ const LabAttendentDashboard = () => {
             </div>
         </div>
     );
+
 
     return (
         <div className="lab-attendent-dashboard">

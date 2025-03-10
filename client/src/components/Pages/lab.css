@@ -287,3 +287,52 @@
     background-color: #059669;
     transform: scale(1.05);
 }
+
+/* ✅ Ensure full screen modal with scrolling */
+.lab-test-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    /* Dark overlay */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* ✅ Make modal content scrollable */
+.lab-test-modal-content {
+    width: 600px;
+    max-height: 80vh;
+    /* Set max height to enable scrolling */
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    overflow-y: auto;
+    /* Enable vertical scrolling */
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* ✅ Custom scrollbar for Webkit browsers */
+.lab-test-modal-content::-webkit-scrollbar {
+    width: 10px;
+}
+
+.lab-test-modal-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    /* Light grey */
+    border-radius: 10px;
+}
+
+.lab-test-modal-content::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    /* Slightly darker grey */
+    border-radius: 10px;
+}
+
+.lab-test-modal-content::-webkit-scrollbar-thumb:hover {
+    background: #a0a0a0;
+    /* Darker grey on hover */
+}

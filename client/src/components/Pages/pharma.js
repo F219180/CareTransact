@@ -43,29 +43,33 @@ const PharmacistDashboard = () => {
 
             const data = response.data;
             console.log("I received something from medicine");
-            //console.log(data.medicine.dosage)
 
             // Ensure data is an array before mapping
             if (!Array.isArray(data)) {
                 throw new Error('Expected an array of prescriptions, but received something else');
             }
-            const formattedPrescriptions = data.map(pres => ({
-                id: pres.prescriptionId,
-                patientName: pres.patient.name,
-                patientId: pres.patient.email,
-                doctorName: pres.doctor.name,
-                date: new Date().toISOString().split('T')[0],
-                status: 'Pending',
-                urgency: 'Medium',
-                medicines: pres.medicines ? pres.medicines.map(med => ({
-                    id: med.id,
-                    name: med.name,
-                    dosage: med.dosage,
-                    duration: med.duration,
-                    status: med.status
-                })) : [] // ✅ Ensures medicines is always an array
-            }));
 
+            const formattedPrescriptions = data.map(pres => {
+                // Check if all medicines are "Provided"
+                const allMedicinesProvided = pres.medicines?.every(med => med.status === "Provided");
+
+                return {
+                    id: pres.prescriptionId,
+                    patientName: pres.patient.name,
+                    patientId: pres.patient.email,
+                    doctorName: pres.doctor.name,
+                    date: new Date().toISOString().split('T')[0],
+                    status: allMedicinesProvided ? 'Approved' : 'Pending', // ✅ Update status if all medicines are provided
+                    urgency: 'Medium',
+                    medicines: pres.medicines ? pres.medicines.map(med => ({
+                        id: med.id,
+                        name: med.name,
+                        dosage: med.dosage,
+                        duration: med.duration,
+                        status: med.status
+                    })) : [] // ✅ Ensures medicines is always an array
+                };
+            });
 
             setPrescriptions(formattedPrescriptions);
             setError(null); // Clear any previous errors
@@ -112,91 +116,122 @@ const PharmacistDashboard = () => {
         })
     };
 
-    const processMedication = (prescriptionId, medicationId) => {
-        setPrescriptions(prevPrescriptions =>
-            prevPrescriptions.map(prescription => {
-                if (prescription.id === prescriptionId) {
-                    const updatedMedications = prescription.medications.map(med =>
-                        med.id === medicationId ? { ...med, processed: true } : med
-                    );
-                    const allProcessed = updatedMedications.every(med => med.processed);
-                    return {
-                        ...prescription,
-                        medications: updatedMedications,
-                        status: allProcessed ? 'Approved' : prescription.status
-                    };
-                }
-                return prescription;
-            })
-        );
-        if (selectedPrescription && selectedPrescription.id === prescriptionId) {
-            setSelectedPrescription(prevSelected => {
-                if (!prevSelected) return null;
-                const updatedMedications = prevSelected.medications.map(med =>
-                    med.id === medicationId ? { ...med, processed: true } : med
-                );
-                const allProcessed = updatedMedications.every(med => med.processed);
-                return {
-                    ...prevSelected,
-                    medications: updatedMedications,
-                    status: allProcessed ? 'Approved' : prevSelected.status
-                };
+    const processMedication = async (prescriptionId, medicationId) => {
+        try {
+            // Immediately update the UI before making API call
+            setPrescriptions(prevPrescriptions =>
+                prevPrescriptions.map(prescription => {
+                    if (prescription.id === prescriptionId) {
+                        const updatedMedications = prescription.medicines.map(med =>
+                            med.id === medicationId ? { ...med, status: "Processing" } : med
+                        );
+                        return { ...prescription, medicines: updatedMedications };
+                    }
+                    return prescription;
+                })
+            );
+
+            // Make API call to update medicine status in the database
+            const response = await axios.put("http://localhost:5000/api/auth/update-medicine-status", {
+                prescriptionId,
+                medicineId: medicationId
             });
+
+            if (response.status === 200) {
+                // After successful API response, set status to "Provided"
+                setPrescriptions(prevPrescriptions =>
+                    prevPrescriptions.map(prescription => {
+                        if (prescription.id === prescriptionId) {
+                            const updatedMedications = prescription.medicines.map(med =>
+                                med.id === medicationId ? { ...med, status: "Provided" } : med
+                            );
+                            const allProcessed = updatedMedications.every(med => med.status === "Provided");
+                            return {
+                                ...prescription,
+                                medicines: updatedMedications,
+                                status: allProcessed ? "Approved" : prescription.status
+                            };
+                        }
+                        return prescription;
+                    })
+                );
+            }
+        } catch (error) {
+            console.error("❌ Error processing medicine:", error);
+            alert("Failed to process the medicine.");
+
+            // Revert status back to "Pending" if API fails
+            setPrescriptions(prevPrescriptions =>
+                prevPrescriptions.map(prescription => {
+                    if (prescription.id === prescriptionId) {
+                        const updatedMedications = prescription.medicines.map(med =>
+                            med.id === medicationId ? { ...med, status: "Pending" } : med
+                        );
+                        return { ...prescription, medicines: updatedMedications };
+                    }
+                    return prescription;
+                })
+            );
         }
     };
 
+
     const PrescriptionDetailModal = ({ prescription, onClose }) => (
         <div className="prescription-modal">
+            {/* ✅ Scrollable modal content */}
             <div className="prescription-modal-content">
-                <h2>Prescription Details</h2>
-                <div className="prescription-details">
-                    <div className="detail-section">
-                        <User size={20} /> <span>Patient: {prescription.patientName}</span>
-                    </div>
-                    <div className="detail-section">
-                        <Calendar size={20} /> <span>Date: {prescription.date}</span>
-                    </div>
-                    <div className="detail-section">
-                        <FileText size={20} /> <span>Doctor: {prescription.doctorName}</span>
-                    </div>
-                    <div className="medications-list">
-                        <h3>Medications</h3>
-                        {prescription.medicines && prescription.medicines.length > 0 ? (
-                            prescription.medicines.map(med => (
-                                <div key={med.id} className="medication-item">
-                                    <span>{med.name}</span>
-                                    <span>{med.dosage}</span>
-                                    <span>{med.duration}</span>
+                <div className="scrollable-modal-content">
+                    <h2>Prescription Details</h2>
+                    <div className="prescription-details">
+                        <div className="detail-section">
+                            <User size={20} /> <span>Patient: {prescription.patientName}</span>
+                        </div>
+                        <div className="detail-section">
+                            <Calendar size={20} /> <span>Date: {prescription.date}</span>
+                        </div>
+                        <div className="detail-section">
+                            <FileText size={20} /> <span>Doctor: {prescription.doctorName}</span>
+                        </div>
+                        <div className="medications-list">
+                            <h3>Medications</h3>
+                            {prescription.medicines && prescription.medicines.length > 0 ? (
+                                prescription.medicines.map(med => (
+                                    <div key={med.id} className="medication-item">
+                                        <span>{med.name}</span>
+                                        <span>{med.dosage}</span>
+                                        <span>{med.duration}</span>
 
-                                    {prescription.status === 'Pending' && med.status === 'Pending' && (
-                                        <button
-                                            className="process-med-btn"
-                                            onClick={() => processMedication(prescription.id, med.id)}
-                                        >
-                                            Process
-                                        </button>
-                                    )}
+                                        {med.status === "Pending" && (
+                                            <button
+                                                className="process-med-btn"
+                                                onClick={() => processMedication(prescription.id, med.id)}
+                                            >
+                                                Process
+                                            </button>
+                                        )}
 
-                                    {med.status === 'Provided' && (
-                                        <span className="processed-indicator">
-                                            <CheckCircle size={16} /> Processed
-                                        </span>
-                                    )}
-                                </div>
-                            ))
-                        ) : (
-                            <p>No medicines available.</p>  // ✅ Shows this message if medicines are missing
-                        )}
-
-
+                                        {med.status === "Provided" && (
+                                            <span className="processed-indicator">
+                                                <CheckCircle size={16} /> Processed
+                                            </span>
+                                        )}
+                                    </div>
+                                ))
+                            ) : (
+                                <p>No medicines available.</p>
+                            )}
+                        </div>
                     </div>
                 </div>
+
                 <div className="modal-actions">
                     <button onClick={onClose} className="close-modal-btn">Close</button>
                 </div>
             </div>
         </div>
     );
+
+
 
     return (
         <div className="pharmacist-dashboard">

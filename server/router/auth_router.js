@@ -63,6 +63,8 @@ router.get("/medicines/check", controllers.checkMedicines);
 // pharmacist
 
 router.get('/pharmacist/medicines', controllers.getPharmacistMedicines);
+router.put('/update-medicine-status', controllers.updateMedicineStatus);
+
 
 
 
@@ -70,7 +72,7 @@ router.get('/pharmacist/medicines', controllers.getPharmacistMedicines);
 // Lab Attendee Routes
 router.get('/lab-attendee-tests', controllers.getLabAttendeeTests); // Fetch all lab tests
 router.get('/patient-name', controllers.getPatientName);
-router.put('/update-lab-test-status', controllers.updateLabTestStatus); // Update lab test status
+router.put('/update-lab-test-status', controllers.updateLabTestStatus);
 router.get('/lab-tests-by-prescription', controllers.getLabTestsByPrescriptionId); // Fetch lab tests by prescription ID
 
 
