@@ -9,6 +9,8 @@ import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.js';
+import { db } from "../firebase.js";
+import { doc, getDoc } from "firebase/firestore";
 
 
 function Login() {
@@ -23,7 +25,6 @@ function Login() {
     };
 
     const navigate = useNavigate();
-
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -31,56 +32,66 @@ function Login() {
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
-            if (user.emailVerified) {
-                const response = await axios.post('http://localhost:5000/api/auth/check-user-type', { email });
-                const userType = response.data.userType;
+            // Fetch user type from Firestore
 
-                toast.success("Successfully logged in!", {
-                    style: { backgroundColor: "#4caf50", color: "#fff" }
-                });
+            const userDoc = await getDoc(doc(db, "users", user.uid));
+            if (!userDoc.exists()) {
+                toast.error("User not found in the database.");
+                return;
+            }
+            const response = await axios.post('http://localhost:5000/api/auth/check-user-type', { email });
+            const userType = response.data.userType;
+            console.log("usertype", userType)
+            const entity = userDoc.data().entity; // Assuming Firestore stores userType
 
-                // Store email in AuthContext
-                setEmailInAuth(email);
-
-                // Redirect based on user type
-                setTimeout(() => {
-                    switch (userType) {
-                        case 'admin':
-                            navigate('/admin');
-                            break;
-                        case 'doctor':
-                            navigate('/Doctor');
-                            break;
-                        case 'patient':
-                            navigate('/profilePatient');
-                            break;
-                        case 'pharmacist':
-                            navigate('/pharmacist-dashboard'); // Redirect to Pharmacist Dashboard
-                            break;
-                        case 'labAttendee':
-                            navigate('/lab-attendee-dashboard'); // Redirect to Lab Attendant Dashboard
-                            break;
-                        case 'insuranceCompany':
-                            navigate('/insurance-dashboard'); // Redirect to Insurance Dashboard
-                            break;
-                        default:
-                            toast.error("User type not recognized.");
-                            break;
-                    }
-                }, 3000);
-            } else {
+            // If the user is a patient, check email verification
+            if (entity === "patient" && !user.emailVerified) {
                 toast.error("Please verify your email before logging in.", {
                     style: { backgroundColor: "#f44336", color: "#fff" }
                 });
+                return;
             }
+
+            toast.success("Successfully logged in!", {
+                style: { backgroundColor: "#4caf50", color: "#fff" }
+            });
+
+            // Store email in AuthContext
+            setEmailInAuth(email);
+
+            // Redirect based on user type
+            setTimeout(() => {
+                switch (userType) {
+                    case 'admin':
+                        navigate('/admin');
+                        break;
+                    case 'doctor':
+                        navigate('/Doctor');
+                        break;
+                    case 'patient':
+                        navigate('/profilePatient');
+                        break;
+                    case 'pharmacist':
+                        navigate('/pharmacist-dashboard');
+                        break;
+                    case 'labAttendee':
+                        navigate('/lab-attendee-dashboard');
+                        break;
+                    case 'insuranceCompany':
+                        navigate('/insurance-dashboard');
+                        break;
+                    default:
+                        toast.error("User type not recognized.");
+                        break;
+                }
+            }, 3000);
+
         } catch (error) {
             toast.error(`Error: ${error.message}`, {
                 style: { backgroundColor: "#f44336", color: "#fff" }
             });
         }
     };
-
-
 
 
     return (

@@ -86,6 +86,20 @@ router.post('/pharmacy-requests/create-and-update-claim', controllers.createPhar
 
 
 
+
+////////////////  admin
+router.get('/user-counts', controllers.getUserCounts);
+router.get('/getAppointmentCount', controllers.getAppointmentCounts);
+//get user for admin pop up
+router.get('/get-users', controllers.getUsers);
+
+router.delete('/remove-user/:id/:role', controllers.removeUser);
+
+// Route to add a new user
+router.post("/add-user", controllers.handleAddUser);
+
+router.get('/user-details/:entity/:id', controllers.getUserDetails);
+
 router.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).json({ error: 'Internal server error' });

@@ -48,7 +48,7 @@ body {
 }
 
 /* Sidebar */
-.sidebar {
+/* .sidebar {
     width: var(--sidebar-width);
     background-color: var(--dark-color);
     color: white;
@@ -96,7 +96,7 @@ body {
     background-color: var(--primary-color);
     color: white;
     font-weight: 500;
-}
+} */
 
 /* Main Content */
 .main-content {

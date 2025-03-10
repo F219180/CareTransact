@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const XLSX = require("xlsx");
 const fs = require("fs");
 const path = require("path");
+const { admin, db } = require("../firebaseAdmin");
+const bcrypt = require("bcrypt");
 // Patient Controllers
 const addPatient = async (req, res) => {
     try {
@@ -1401,6 +1403,282 @@ const createPharmacyRequestAndUpdateClaim = async (req, res) => {
 
 
 
+
+
+
+
+
+
+
+
+
+////////////////////////  admin 
+
+//contoller for the admin dashboard
+
+//get user count
+const getUserCounts = async (req, res) => {
+    try {
+        const doctorCount = await Doctor.countDocuments();
+        const patientCount = await Patient.countDocuments();
+        const labAttendeeCount = await LabAttendee.countDocuments();
+        const pharmacistCount = await Pharmacist.countDocuments();
+
+        res.json({
+            doctorCount,
+            patientCount,
+            labAttendeeCount,
+            pharmacistCount
+        });
+    } catch (err) {
+        res.status(500).json({ message: 'Error fetching counts' });
+    }
+};
+
+//get appointemnt count
+const getAppointmentCounts = async (req, res) => {
+    try {
+        // Fetch the total count of appointments
+        const appointmentCount = await Appointment.countDocuments();
+
+        // Fetch the count of appointments with status 'Available'
+        const availableCount = await Appointment.countDocuments({ status: 'Available' });
+
+        // Fetch the count of appointments with status 'Pending'
+        const pendingCount = await Appointment.countDocuments({ status: 'Pending' });
+
+        // Fetch the count of appointments with status 'Confirmed'
+        const confirmedCount = await Appointment.countDocuments({ status: 'Confirmed' });
+
+        // Return the counts as a response
+        res.json({
+            appointmentCount,
+            availableCount,
+            pendingCount,
+            confirmedCount
+        });
+    } catch (err) {
+        res.status(500).json({ message: 'Error fetching appointment counts' });
+    }
+};
+const getUsers = async (req, res) => {
+    try {
+        let users;
+        const type = req.query.type;
+
+        if (type === "doctors") {
+            users = await Doctor.find({}, "_id name ");
+        } else if (type === "patients") {
+            users = await Patient.find({}, "_id name");
+        } else if (type === "labAttendees") {
+            users = await LabAttendee.find({}, "_id name");
+        } else if (type === "pharmacists") {
+            users = await Pharmacist.find({}, "_id name");
+        } else {
+            return res.status(400).json({ message: "Invalid entity type" });
+        }
+
+        // Convert _id to id
+        const formattedUsers = users.map(user => ({
+            id: user._id,  // Convert _id to id
+            name: user.name,
+            qualification: user.qualification, // Only exists for doctors
+        }));
+
+        res.json(formattedUsers);
+    } catch (err) {
+        res.status(500).json({ message: "Error fetching users" });
+    }
+};
+
+
+const removeUser = async (req, res) => {
+    try {
+        const { id, role } = req.params;
+        console.log(`Received request to delete ${role} with ID: ${id}`);
+
+        if (!id || !role) {
+            return res.status(400).json({ error: "User ID and role are required" });
+        }
+
+        if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+            return res.status(400).json({ error: "Invalid User ID format" });
+        }
+
+        const modelMapping = {
+            doctor: Doctor,
+            patient: Patient,
+            pharmacist: Pharmacist,
+            lab_attendee: LabAttendee
+        };
+
+        const Model = modelMapping[role];
+
+        if (!Model) {
+            return res.status(400).json({ error: "Invalid role" });
+        }
+
+        // 🔹 Find user in MongoDB
+        const user = await Model.findById(id);
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        const userEmail = user.email; // Extract email from MongoDB
+
+        // 🔹 Delete from MongoDB
+        await Model.findByIdAndDelete(id);
+        console.log(`Deleted user from MongoDB: ${id}`);
+
+        // 🔹 Delete from Firestore (Find document by email)
+        if (userEmail) {
+            const snapshot = await db.collection("users").where("email", "==", userEmail).get();
+            if (!snapshot.empty) {
+                const batch = db.batch();
+                snapshot.forEach((doc) => {
+                    batch.delete(doc.ref);
+                });
+                await batch.commit();
+                console.log(`Deleted Firestore document from 'users' collection for email: ${userEmail}`);
+            } else {
+                console.warn(`No Firestore document found for email: ${userEmail}`);
+            }
+        }
+
+        // 🔹 Delete from Firebase Authentication
+        if (userEmail) {
+            try {
+                const userRecord = await admin.auth().getUserByEmail(userEmail);
+                await admin.auth().deleteUser(userRecord.uid);
+                console.log(`Deleted user from Firebase Auth: ${userEmail}`);
+            } catch (firebaseError) {
+                console.warn(`User not found in Firebase Auth: ${userEmail} - ${firebaseError.message}`);
+            }
+        }
+
+        res.status(200).json({ message: `${role} deleted successfully from MongoDB, Firestore ('users' collection), and Firebase Auth.` });
+
+    } catch (error) {
+        console.error("Error deleting user:", error);
+        res.status(500).json({ error: "Failed to delete user", details: error.message });
+    }
+};
+
+const handleAddUser = async (req, res) => {
+    try {
+        const { email, password, entity, name } = req.body;
+
+        if (!email || !password || !entity) {
+            return res.status(400).json({ error: "Email, password, and entity are required" });
+        }
+
+        // ✅ Identify the correct MongoDB model
+        let EntityModel;
+        if (entity.toLowerCase() === "doctor" || entity.toLowerCase() === "doctors") EntityModel = Doctor;
+        else if (entity === "patient") EntityModel = Patient;
+        else if (entity.toLowerCase() === "pharmacist" || entity.toLowerCase() === "pharmacists")
+            EntityModel = Pharmacist;
+        else if (entity === "labAttendees") EntityModel = LabAttendee;
+        else {
+            return res.status(400).json({ error: "Invalid entity type" });
+        }
+
+        // ✅ Check if user already exists in MongoDB
+        const existingUserMongo = await EntityModel.findOne({ email });
+        if (existingUserMongo) {
+            return res.status(400).json({ error: "User already exists in MongoDB" });
+        }
+
+        // ✅ Check if user already exists in Firestore
+        const usersRef = db.collection("users");
+        const existingUserFirestore = await usersRef.where("email", "==", email).get();
+        if (!existingUserFirestore.empty) {
+            return res.status(400).json({ error: "User already exists in Firestore" });
+        }
+
+        // ✅ Create user in Firebase Authentication
+        const userRecord = await admin.auth().createUser({
+            email,
+            password
+        });
+
+        const uid = userRecord.uid;
+
+        // ✅ Store user in Firestore (including `entity`)
+        await usersRef.doc(uid).set({
+            email,
+            uid,
+            entity,  // ✅ Store user type in Firestore
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        console.log("Saving to MongoDB:", { model: EntityModel.modelName, email });
+
+        // ✅ Store user in MongoDB (without password)
+
+        const newUser = new EntityModel({
+            email,
+            name: (entity === "labAttendees" || entity === "pharmacists") ? (name || "Unknown") : undefined
+        });
+        try {
+            await newUser.save();
+            console.log("User saved successfully in MongoDB!");
+        } catch (mongoError) {
+            console.error("Error saving to MongoDB:", mongoError);
+            return res.status(500).json({ error: "MongoDB insertion failed", details: mongoError.message });
+        }
+
+        return res.status(201).json({ message: "User added successfully!", uid });
+    } catch (error) {
+        console.error("Error adding user:", error);
+        return res.status(500).json({ error: "Failed to add user", details: error.message });
+    }
+};
+
+
+const getUserDetails = async (req, res) => {
+    try {
+        const { entity, id } = req.params;
+
+        let model;
+        console.log("entity is: ");
+        console.log(entity);
+        switch (entity) {
+            case 'doctors':
+                model = Doctor;
+                break;
+            case 'patients':
+                model = Patient;
+                break;
+            case 'pharmacists':
+                model = Pharmacist;
+                break;
+            case 'labAttendees':
+                model = LabAttendee;
+                break;
+            case 'insuranceCompanies':
+                model = InsuranceCompany;
+                break;
+            default:
+                return res.status(400).json({ error: "Invalid entity type." });
+        }
+
+        const user = await model.findById(id);
+        if (!user) {
+            return res.status(404).json({ error: "User not found." });
+        }
+
+        res.json(user);
+    } catch (error) {
+        console.error("Error fetching user details:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+};
+
+
+
+
+
 module.exports = {
     addPatient,
     getPatientDetails,
@@ -1440,5 +1718,11 @@ module.exports = {
     getPatientName,
     getClaimByPrescriptionId,
     createLabTestsAndUpdateClaim,
-    createPharmacyRequestAndUpdateClaim
+    createPharmacyRequestAndUpdateClaim,
+    getUserCounts,
+    getAppointmentCounts,
+    getUsers,
+    removeUser,
+    handleAddUser,
+    getUserDetails
 };
